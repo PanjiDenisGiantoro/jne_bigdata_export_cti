@@ -1,0 +1,14 @@
+### GET request to example server
+GET https://examples.http-client.intellij.net/get
+    ?generated-in=PhpStorm
+
+###
+POST http://localhost:3000/getreporttci
+
+{
+    "origin": "BDO",
+    "destination": "BDO",
+    "froms": "02/01/2025",
+    "thrus": "02/02/2025",
+    "TM": "BDO"
+}
