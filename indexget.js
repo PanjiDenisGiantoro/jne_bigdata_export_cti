@@ -240,6 +240,7 @@ app.get('/getreporttci', async (req, res) => {
             origin, destination, froms, thrus, user_id,TM, dateStr
         });
 
+
         // Send the generated zip file as a download response
         res.download(zipFilePath, (err) => {
             if (err) {

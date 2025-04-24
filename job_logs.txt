@@ -1,0 +1,13 @@
+[2025-04-24T11:06:24.371Z] Koneksi berhasil ke database.
+[2025-04-24T11:06:24.963Z] Folder for YANTI created at C:\laragon\www\export_cti\file_download\Reports_YANTI_2025-04-24
+[2025-04-24T11:06:25.940Z] Data successfully exported to C:\laragon\www\export_cti\file_download\Reports_YANTI_2025-04-24\TCIReport_YANTI_2025-04-24_part1.xlsx
+[2025-04-24T11:06:25.996Z] Zip file created: C:\laragon\www\export_cti\file_download\TCI_Report_YANTI_2025-04-24_110624.zip
+[2025-04-24T11:06:25.999Z] Folder C:\laragon\www\export_cti\file_download\Reports_YANTI_2025-04-24 deleted after zipping
+[2025-04-24T11:06:26.021Z] File downloaded and deleted after use
+[2025-04-24T11:08:45.708Z] Koneksi berhasil ke database.
+[2025-04-24T11:08:46.364Z] Folder for YANTI created at C:\laragon\www\export_cti\file_download\Reports_YANTI_2025-04-24
+[2025-04-24T11:08:47.284Z] Data successfully exported to C:\laragon\www\export_cti\file_download\Reports_YANTI_2025-04-24\TCIReport_YANTI_2025-04-24_part1.xlsx
+[2025-04-24T11:08:47.365Z] Zip file created: C:\laragon\www\export_cti\file_download\TCI_Report_YANTI_2025-04-24_110846.zip
+[2025-04-24T11:08:47.370Z] Zip file copied to: C:\laragon\www\export_cti\file_download\TCI_Report_YANTI_2025-04-24_110846.zip
+[2025-04-24T11:08:47.375Z] Folder C:\laragon\www\export_cti\file_download\Reports_YANTI_2025-04-24 deleted after zipping
+[2025-04-24T11:08:47.406Z] File downloaded and deleted after use
