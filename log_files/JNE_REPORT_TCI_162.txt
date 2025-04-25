@@ -1,0 +1,12 @@
+
+            Job ID: 162
+            Origin: BDO
+            Destination: BDO
+            From Date: 01-FEB-2025
+            To Date: 02-FEB-2025
+            User ID: YASIQIN
+            TM: 0
+            Estimated Data Count: 2660
+            Estimated Time: 0.18 minutes
+            Status: Pending
+        

@@ -1,0 +1,12 @@
+
+            Job ID: 158
+            Origin: BDO
+            Destination: 0
+            From Date: 01-FEB-2025
+            To Date: 02-FEB-2025
+            User ID: YANTI
+            TM: BDO
+            Estimated Data Count: 39778
+            Estimated Time: 2.65 minutes
+            Status: Pending
+        
