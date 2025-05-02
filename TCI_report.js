@@ -478,8 +478,13 @@
                     res.status(500).send({ success: false, message: 'An error occurred while downloading the log file.' });
                 } else {
                     console.log('Log file sent for download');
+                    const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:78:&${user_session}.::NO::P78_USER=${username}&NO_CACHE=YES`;
+
+                    res.redirect(redirectUrl);
                 }
             });
+
+        //     refresh
 
         } catch (err) {
             console.error('Error adding job to queue:', err);
@@ -488,7 +493,7 @@
     });
 
 
-    app.get('/jobs', async (req, res) => {
+    app.get('/jobstci', async (req, res) => {
         try {
             // Get the list of all jobs in the queue
             const jobs = await reportQueue.getJobs();
@@ -529,7 +534,7 @@
         }
     });
 
-    app.get('/jobs/:id', async (req, res) => {
+    app.get('/jobstci/:id', async (req, res) => {
         try {
             const job = await reportQueue.getJob(req.params.id);
             if (job) {
@@ -579,7 +584,7 @@
 
 
     app.use('/file_download', express.static(path.join(__dirname, 'file_download')));
-    app.get('/download/:jobId', async (req, res) => {
+    app.get('/downloadtci/:jobId', async (req, res) => {
         const { jobId } = req.params;  // Ambil jobId dari parameter URL
         try {
             // Cari pekerjaan berdasarkan jobId di reportQueue
@@ -642,6 +647,12 @@
     });
 
 
+    app.use(express.static('public'));
+
+    // Serve the progresstci.html when visiting the /progress URL
+    app.get('/progresstci', (req, res) => {
+        res.sendFile(__dirname + '/public/progresstci.html');
+    });
     // Start the server
     app.listen(port, () => {
         console.log(`Server running at http://0.0.0.0:${port}`);

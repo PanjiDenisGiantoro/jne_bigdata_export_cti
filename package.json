@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon indexgetv3.js",
+    "start": "nodemon TCI_report.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -11,6 +11,8 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@sentry/node": "^9.14.0",
+    "@sentry/profiling-node": "^9.14.0",
     "archiver": "^7.0.1",
     "bull": "^4.16.5",
     "bull-board": "^1.7.2",

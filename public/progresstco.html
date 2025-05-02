@@ -1,0 +1,450 @@
+<!DOCTYPE html><html><head>
+    <title>Redoc</title>
+    <!-- needed for adaptive design -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>.ps{overflow:hidden!important;overflow-anchor:none;-ms-overflow-style:none;touch-action:auto;-ms-touch-action:auto}.ps__rail-x{display:none;opacity:0;transition:background-color .2s linear,opacity .2s linear;-webkit-transition:background-color .2s linear,opacity .2s linear;height:15px;bottom:0;position:absolute}.ps__rail-y{display:none;opacity:0;transition:background-color .2s linear,opacity .2s linear;-webkit-transition:background-color .2s linear,opacity .2s linear;width:15px;right:0;position:absolute}.ps--active-x>.ps__rail-x,.ps--active-y>.ps__rail-y{display:block;background-color:transparent}.ps:hover>.ps__rail-x,.ps:hover>.ps__rail-y,.ps--focus>.ps__rail-x,.ps--focus>.ps__rail-y,.ps--scrolling-x>.ps__rail-x,.ps--scrolling-y>.ps__rail-y{opacity:.6}.ps .ps__rail-x:hover,.ps .ps__rail-y:hover,.ps .ps__rail-x:focus,.ps .ps__rail-y:focus,.ps .ps__rail-x.ps--clicking,.ps .ps__rail-y.ps--clicking{background-color:#eee;opacity:.9}.ps__thumb-x{background-color:#aaa;border-radius:6px;transition:background-color .2s linear,height .2s ease-in-out;-webkit-transition:background-color .2s linear,height .2s ease-in-out;height:6px;bottom:2px;position:absolute}.ps__thumb-y{background-color:#aaa;border-radius:6px;transition:background-color .2s linear,width .2s ease-in-out;-webkit-transition:background-color .2s linear,width .2s ease-in-out;width:6px;right:2px;position:absolute}.ps__rail-x:hover>.ps__thumb-x,.ps__rail-x:focus>.ps__thumb-x,.ps__rail-x.ps--clicking .ps__thumb-x{background-color:#999;height:11px}.ps__rail-y:hover>.ps__thumb-y,.ps__rail-y:focus>.ps__thumb-y,.ps__rail-y.ps--clicking .ps__thumb-y{background-color:#999;width:11px}@supports (-ms-overflow-style: none){.ps{overflow:auto!important}}@media screen and (-ms-high-contrast: active),(-ms-high-contrast: none){.ps{overflow:auto!important}}
+    </style><style data-styled="active" data-styled-version="5.3.0"></style></head>
+
+<body>
+<div class="redocly_link">
+    <img src="http://localhost:63342/__ij-openapi-plugin/customResource?previewType=redoc&amp;resourcePath=redoc-icon.svg" style="width: 15px; height: 15px; vertical-align: middle">
+    <a href="https://redocly.com/dx/?utm_source=jetbrains&amp;utm_medium=ide&amp;utm_campaign=ia1&amp;utm_content=powered-by" class="redoc_preview_link">
+        Powered by Redocly
+        <span class="tooltiptext">https://redocly.com/dx/</span>
+    </a>
+</div>
+
+<div id="redocly_container"><div class="sc-jcsPjo hoQXgm redoc-wrap"><div class="sc-iiBnNu jFPctD"><a href="https://redoc.ly">Redocly API reference docs</a> preview</div><div class="sc-fkmfBh gWbnBB api-content"><div class="sc-gtsrHT eosPhD"><div class="sc-eCApnc crGSuW"><div class="sc-bdnxRM gXkziR api-info"><h1 class="sc-jSFjdj sc-jgPyTC lhkLgE iJjSgu">TCO Report API <span>(1.0.0)</span></h1><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM"></div><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM redoc-markdown " data-role="redoc-summary"></div><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM redoc-markdown " data-role="redoc-description"><p>API untuk menghasilkan laporan TCO dengan memproses data dari database Oracle dan mengunduh laporan dalam format Excel dan zip.</p>
+</div></div></div></div><div data-section-id="tag/Schemas" class="sc-gtsrHT eosPhD"><div class="sc-eCApnc crGSuW"><div class="sc-bdnxRM gXkziR"><h1 class="sc-jSFjdj lhkLgE"><span class="sc-fnVZcZ hmqpxx"> <svg class="sc-hBMUJo hihYlD" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg> </span>Schemas</h1></div></div></div><div data-section-id="/paths/~1getreporttco/get" class="sc-gtsrHT bXpgnb"><div class="sc-eCApnc sc-hKiEVl kRdEmm iEOpyR"><div class="sc-bdnxRM gXkziR"><h2 class="sc-gKAaRy pzRTb"><span class="sc-fnVZcZ hmqpxx"> <svg class="sc-hBMUJo hihYlD" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg> </span>Generate TCO report</h2><div class="sc-fbIWvP sc-FRrlG eQoYJx gPnfKq"><div class="sc-hhIiOg sc-fuISkM jQbICa itZnGa"><div class="sc-dsXzNU iNWOJK"><span type="get" class="sc-dPaNzc ggNuBc">get</span><span class="sc-hOPeYd jlEruw">/getreporttco</span><svg class="sc-crzoAE kqwHCD" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg></div><button color="primary" data-cy="try-it" class="sc-cTJkRt sc-jQAxuV eDlumr cJKVCX">Try it</button></div></div><div class="sc-exqIPC igFoGl"><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM redoc-markdown "><p>Mendapatkan laporan TCO berdasarkan parameter yang diberikan dan mengembalikan file zip dengan laporan.</p>
+</div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Request</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Responses</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div></div><div data-cy="samples-block" class="sc-dlnjwi dUMBoV"></div></div></div><div data-section-id="/paths/~1jobsdco/get" class="sc-gtsrHT bXpgnb"><div class="sc-eCApnc sc-hKiEVl kRdEmm iEOpyR"><div class="sc-bdnxRM gXkziR"><h2 class="sc-gKAaRy pzRTb"><span class="sc-fnVZcZ hmqpxx"> <svg class="sc-hBMUJo hihYlD" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg> </span>Get all TCO jobs</h2><div class="sc-fbIWvP sc-FRrlG eQoYJx gPnfKq"><div class="sc-hhIiOg sc-fuISkM jQbICa itZnGa"><div class="sc-dsXzNU iNWOJK"><span type="get" class="sc-dPaNzc ggNuBc">get</span><span class="sc-hOPeYd jlEruw">/jobsdco</span><svg class="sc-crzoAE kqwHCD" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg></div><button color="primary" data-cy="try-it" class="sc-cTJkRt sc-jQAxuV eDlumr cJKVCX">Try it</button></div></div><div class="sc-exqIPC igFoGl"><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM redoc-markdown "><p>Mendapatkan daftar semua pekerjaan TCO yang sedang diproses, beserta statusnya.</p>
+</div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Responses</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div></div><div data-cy="samples-block" class="sc-dlnjwi dUMBoV"></div></div></div><div data-section-id="/paths/~1jobstco~1{id}/get" class="sc-gtsrHT bXpgnb"><div class="sc-eCApnc sc-hKiEVl kRdEmm iEOpyR"><div class="sc-bdnxRM gXkziR"><h2 class="sc-gKAaRy pzRTb"><span class="sc-fnVZcZ hmqpxx"> <svg class="sc-hBMUJo hihYlD" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg> </span>Get job details by ID</h2><div class="sc-fbIWvP sc-FRrlG eQoYJx gPnfKq"><div class="sc-hhIiOg sc-fuISkM jQbICa itZnGa"><div class="sc-dsXzNU iNWOJK"><span type="get" class="sc-dPaNzc ggNuBc">get</span><span class="sc-hOPeYd jlEruw">/jobstco/{id}</span><svg class="sc-crzoAE kqwHCD" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg></div><button color="primary" data-cy="try-it" class="sc-cTJkRt sc-jQAxuV eDlumr cJKVCX">Try it</button></div></div><div class="sc-exqIPC igFoGl"><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM redoc-markdown "><p>Mendapatkan detail pekerjaan TCO berdasarkan ID pekerjaan.</p>
+</div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Request</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Responses</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div></div><div data-cy="samples-block" class="sc-dlnjwi dUMBoV"></div></div></div><div data-section-id="/paths/~1downloadtco~1{jobId}/get" class="sc-gtsrHT bXpgnb"><div class="sc-eCApnc sc-hKiEVl kRdEmm iEOpyR"><div class="sc-bdnxRM gXkziR"><h2 class="sc-gKAaRy pzRTb"><span class="sc-fnVZcZ hmqpxx"> <svg class="sc-hBMUJo hihYlD" viewBox="0 0 16 16" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg> </span>Download TCO report by job ID</h2><div class="sc-fbIWvP sc-FRrlG eQoYJx gPnfKq"><div class="sc-hhIiOg sc-fuISkM jQbICa itZnGa"><div class="sc-dsXzNU iNWOJK"><span type="get" class="sc-dPaNzc ggNuBc">get</span><span class="sc-hOPeYd jlEruw">/downloadtco/{jobId}</span><svg class="sc-crzoAE kqwHCD" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg></div><button color="primary" data-cy="try-it" class="sc-cTJkRt sc-jQAxuV eDlumr cJKVCX">Try it</button></div></div><div class="sc-exqIPC igFoGl"><div class="sc-kLojOw sc-iTVJFM cxoPpQ bTOdNM redoc-markdown "><p>Mengunduh laporan TCO berdasarkan ID pekerjaan.</p>
+</div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Request</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div><div class="sc-fbIWvP sc-dvXYtj sc-TtZnY eQoYJx ghAhiJ gnBPmJ"><div class="sc-hhIiOg jQbICa"><div class="sc-eirqVv dSzotL"><span class="sc-lbVvki egkEFP">Responses</span><svg class="sc-crzoAE evzHQq" viewBox="0 0 4.25 7" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0.205025 1.19467L3.00503 3.99467C3.27839 4.26804 3.72161 4.26804 3.99497 3.99467C4.26834 3.7213 4.26834 3.27809 3.99497 3.00472L1.19497 0.20472C0.921608 -0.0686469 0.478392 -0.0686469 0.205025 0.20472C-0.0683418 0.478087 -0.0683417 0.921303 0.205025 1.19467Z"></path><path d="M3.00503 3.00501L0.205025 5.80501C-0.0683417 6.07838 -0.0683417 6.5216 0.205025 6.79496C0.478392 7.06833 0.921608 7.06833 1.19497 6.79496L3.99497 3.99496C4.26834 3.7216 4.26834 3.27838 3.99497 3.00501C3.72161 2.73165 3.27839 2.73165 3.00503 3.00501Z"></path></svg><span class="sc-ckTSus kVjkXt"> </span></div></div></div></div><div data-cy="samples-block" class="sc-dlnjwi dUMBoV"></div></div></div></div><span class="sc-eKaNGd eDaZLd"><div class="sc-jcwpoC kyvWZW"><a class="sc-gJjCVn eJSfff"><svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg"><line x1="1" y1="4" x2="8" y2="4" stroke="#9AA6B1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="1" y1="8" x2="8" y2="8" stroke="#9AA6B1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><line x1="1" y1="12" x2="8" y2="12" stroke="#9AA6B1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></line><rect x="11" width="9" height="16" rx="1" fill="#9AA6B1"></rect></svg></a></div></span></div></div>
+<div id="error_container"></div>
+<script src="http://localhost:63342/__ij-openapi-plugin/errorHandler?previewType=redoc"></script>
+<script src="http://localhost:63342/__ij-openapi-plugin/libraryResource?previewType=redoc&amp;resourcePath=redoc.js"></script><script id="dummy1745910439663.7422"></script>
+<script>
+    RedoclyReferenceDocs.init(
+        "http://localhost:63342/__ij-openapi-plugin/specification?previewType=redoc&specificationKey=78370305-20d9-4461-8e4d-e0ffa602fc4f",
+        {
+            licenseKey: "",
+            ctrlFHijack: false,
+            nativeScrollbars: true,
+            disableDeepLinks: true,
+            disableSearch: true,
+            disableSidebar: true,
+            expandDefaultResponse: false,
+            expandDefaultRequest: false,
+            hideDownloadButton: true,
+            layout: "stacked",
+            pathInMiddlePanel: true,
+            hideSecuritySection: true,
+            sideNavStyle: "path-first",
+            schemaDefinitionsTagName: "Schemas",
+            collapseRequestSamplePanel: true,
+            collapseResponseSamplePanel: true,
+            theme: {
+                "colors": {
+                    "accent": {
+                        "dark": "#bbbbbb"
+                    },
+                    "secondary": {
+                        "main": "#DFE1E5",
+                        "light": "#2B2D30",
+                        "contrastText": "#3c3f41"
+                    },
+                    "border": {
+                        "dark": "#383A42",
+                        "light": "#3c3f41"
+                    },
+                    "primary": {
+                        "main": "#DFE1E5"
+                    },
+                    "success": {
+                        "main": "#57965C",
+                        "dark": "#253627",
+                        "contrastText": "#ffffff"
+                    },
+                    "text": {
+                        "primary": "#DFE1E5",
+                        "secondary": "#DFE1E5"
+                    },
+                    "http": {
+                        "basic": "#6F737A",
+                        "delete": "#DB5C5C",
+                        "get": "#3574F0",
+                        "head": "#6F737A",
+                        "link": "#6F737A",
+                        "options": "#6F737A",
+                        "patch": "#6F737A",
+                        "post": "#5FAD65",
+                        "put": "#D6AE58"
+                    },
+                    "responses": {
+                        "error": {
+                            "backgroundColor": "#402929",
+                            "borderColor": "#5E3838"
+                        },
+                        "success": {
+                            "backgroundColor": "#253627",
+                            "borderColor": "#375239"
+                        }
+                    }
+                },
+                "spacing": {
+                    "sectionHorizontal": 0,
+                    "sectionVertical": 0
+                },
+                "components": {
+                    "panels": {
+                        "borderRadius": "8px",
+                        "backgroundColor": "#2B2D30",
+                        "title": {
+                            "color": "#DFE1E5",
+                            "fontSize": "14px",
+                            "lineHeight": "1em"
+                        }
+                    },
+                    "httpBadges": {
+                        "color": "#DFE1E5",
+                        "fontWeight": "3em"
+                    }
+                },
+                "rightPanel": {
+                    "panelControlsBackgroundColor": "#393B40",
+                    "panelBackgroundColor": "#2B2D30"
+                },
+                "sidebar": {
+                    "backgroundColor": "#393B40",
+                    "groupItems": {
+                        "subItemsColor": "#383a3b"
+                    }
+                },
+                "typography": {
+                    "fontSize": "14px",
+                    "fontFamily": "sans-serif",
+                    "optimizeSpeed": true,
+                    "smoothing": "antialiased",
+                    "lineHeight": "1.6em",
+                    "headings": {
+                        "fontWeight": "bold",
+                        "lineHeight": "1.4em",
+                        "fontFamily": "sans-serif"
+                    },
+                    "code": {
+                        "fontWeight": 600,
+                        "color": "#DFE1E5",
+                        "backgroundColor": "#1E1F22",
+                        "fontFamily": "sans-serif",
+                        "lineHeight": "1.6em",
+                        "fontSize": 14
+                    },
+                    "fieldName": {
+                        "lineHeight": "1.6em",
+                        "fontSize": 14,
+                        "fontFamily": "sans-serif"
+                    },
+                    "links": {
+                        "color": "#548AF7",
+                        "hover": "#548AF7, underline"
+                    },
+                    "heading1": {
+                        "color": "#DFE1E5",
+                        "fontSize": "2.2em",
+                        "lineHeight": "1.4em"
+                    },
+                    "heading2": {
+                        "color": "#DFE1E5",
+                        "fontSize": "1.8em",
+                        "lineHeight": "1.2em"
+                    },
+                    "heading3": {
+                        "color": "#bbbbbb",
+                        "fontSize": "1.3em",
+                        "lineHeight": "1em"
+                    }
+                },
+                "schema": {
+                    "caretColor": "#3c3f41",
+                    "nestedBackground": "#393B40",
+                    "nestingSpacing": "1.5em",
+                    "constraints": {
+                        "backgroundColor": "#383A42"
+                    },
+                    "examples": {
+                        "backgroundColor": "#393B40"
+                    }
+                }
+            }
+        },
+        document.querySelector('#redocly_container'),
+    )
+</script>
+
+<style type="text/css">
+    body {
+        word-wrap: break-word;
+        margin: 0 28px;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        position: relative !important;
+        margin-top: 0.67em !important;
+        margin-bottom: 0.67em !important;
+        font-weight: bold;
+        line-height: 1.4em;
+    }
+
+    /* makes api-content to have constant margin*/
+    .api-content {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /*These classes names are tightly coupled with current redoc implementation, can be broken after update*/
+    /*Security section gradient image*/
+    .jRyBkk {
+        background-image: none !important;
+    }
+
+    /* Redocly built-in link style, makes it invisible */
+    .jFPctD {
+        visibility: hidden;
+        position: absolute;
+        padding: 0;
+        text-align: left;
+    }
+
+    /* Redocly description(externalDocs) link style*/
+    .bwRygi {
+        margin-bottom: 0 !important;
+    }
+
+    /* Redocly hardcoded link styles (used instead of built-in) */
+    .redocly_link {
+        margin-top: 16px;
+    }
+
+    a.redoc_preview_link {
+        position: relative;
+        display: inline-block;
+        font-family: sans-serif;
+        font-size: 13px;
+        font-weight: 400;
+        text-decoration: underline;
+        vertical-align: middle;
+    }
+
+    .redoc_preview_link .tooltiptext {
+        visibility: hidden;
+        width: max-content;
+        padding: 5px;
+        background-color: black;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        position: absolute;
+        z-index: 1;
+    }
+
+    .redoc_preview_link:hover .tooltiptext {
+        visibility: visible;
+    }
+
+    div[data-section-id^="schema/"] {
+        display: none;
+    }
+
+    div[data-section-id="tag/Schemas"] {
+        display: none;
+    }
+
+    /* ellipsis style for collapsible values */
+    .ellipsis::after {
+        content: " … " !important;
+    }::-webkit-scrollbar {
+         width: 6px;
+         height: 6px;
+     }
+
+    ::-webkit-scrollbar-thumb {
+        -webkit-border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-track:vertical {
+        -webkit-box-shadow: -1px 0 0 #ededed;
+    }
+
+    ::-webkit-scrollbar-track {
+        background-color: transparent;
+    }::-webkit-scrollbar {
+         width: 10px;
+         height: 10px;
+         background-color: rgba(0, 0, 0, 0);
+     }
+    ::-webkit-scrollbar-track {
+        background-color: rgba(0, 0, 0, 0);
+    }
+    ::-webkit-scrollbar-track:hover {
+        background-color: rgba(0, 0, 0, 0);
+    }
+    ::-webkit-scrollbar-thumb {
+        background-color: rgba(166, 166, 166, 0.278431);
+        border-radius: 0px;
+        border-width: 1px;
+        border-style: solid;
+        border-color: rgba(0, 0, 0, 0);
+        background-clip: padding-box;
+        outline: 1px solid rgba(56, 56, 56, 0.278431);
+        outline-offset: -1px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(166, 166, 166, 0.349020);
+        border-radius: 0px;
+        border-width: 1px;
+        border-style: solid;
+        border-color: rgba(0, 0, 0, 0);
+        background-clip: padding-box;
+        outline: 1px solid rgba(56, 56, 56, 0.349020);
+        outline-offset: -1px;
+    }
+    ::-webkit-scrollbar-corner {
+        background-color: rgba(0, 0, 0, 0);
+    }
+    ::-webkit-scrollbar-button {
+        display:none;
+    }
+    body {
+        background: #2B2D30 !important;
+    }
+
+    button[data-cy="try-it"] {
+        background-color: transparent !important;
+        border: 1px solid #4E5157 !important;
+        color: #DFE1E5 !important;
+    }
+
+    div[data-cy="console"] {
+        border: 1px solid #383A42 !important;
+    }
+
+    .dropdown-wrapper {
+        border: 1px solid #383A42 !important;
+    }
+
+    /*These classes names are tightly coupled with current redoc implementation, can be broken after update*/
+
+    /* Request/Response background */
+    .ghAhiJ {
+        background: #2b2b2b !important;
+    }
+
+    /* Request/Response/endpoint border */
+    .eQoYJx {
+        border: 1px solid #383A42;
+    }
+
+    /* Try-it section, security, body, parameters sections expanded background */
+    .eFmjFu .sc-gGLxEB {
+        background-color: #2B2D30;
+        border: 1px #383A42 !important;
+        border-style: solid;
+    }
+
+    /*Try-it section target servers urls border*/
+    .bqbFFR {
+        border: 1px solid #5A5D6B;
+    }
+
+    /*Security section border*/
+    .eFmjFu .sc-hhIiOg {
+        border: none;
+    }
+
+    /* distance between responses and request samples*/
+    .ghAhiJ {
+        margin-bottom: 10px !important;
+    }
+
+    /*tick color for request responses sections*/
+    .ghAhiJ > .sc-hhIiOg .sc-crzoAE {
+        fill: #6F737A;
+    }
+
+    /*Request/Response samples text color*/
+    .egkEFP {
+        color: #DFE1E5;
+    }
+
+    /* fill color for lock picture in security section */
+    .eXCGCo path {
+        fill: #DFE1E5;
+    }
+
+    /* try it response status 2ХХ message */
+    .lkvPmG {
+        color: #5FAD65;
+    }
+
+    /* try it response status 4ХХ message */
+    .dqVHTL {
+        color: #DB5C5C;
+    }
+
+    a.redoc_preview_link {
+        color: #548AF7;
+    }
+
+    /* Schema/Responses tables characteristics */
+    .iucKkT {
+        border-bottom: 1px solid #3c3f41 !important;
+        border-left: none !important;
+        padding: 0 0 10px 0 !important;
+        width: 100% !important;
+    }
+
+    .jIjeMi {
+        padding: 0 20px;
+    }
+
+    /*css fix for tables in schemas views*/
+    .fuRBuo > tr, .fuRBuo > tbody > tr {
+        display: table-row !important;
+    }
+
+    /* Cross size in request/response tabs in try it */
+    .jsoLdB {
+        font-size: 15px;
+        font-weight: normal;
+    }
+
+    /*req response tabs padding to have buttons with header size */
+    div.sc-hhIiOg.sc-fXazdy.jQbICa.jTzBJm:not(div.sc-hhIiOg.sc-fXazdy.jQbICa.jTzBJm.eYPUFQ) {
+        padding: 0 20px 0 0 !important;
+    }
+
+    /* request tab in try it console */
+    .jfulCe {
+        padding: 10px;
+        background-color: #393b40 !important;
+    }
+
+    /*request, response, edit request tab buttons*/
+    button.sc-btlduw.jfulCe, button.sc-btlduw.edgCiM, button.sc-btlduw.jEPBdl {
+        width: 96px;
+        height: 50px;
+    }
+
+    .edgCiM, .jEPBdl {
+        background-color: #393b40 !important;
+    }
+
+    /*borders*/
+    .lmsRSf, .irpGHn, .czubCM label, .iXBklf, .hwAtoO, .eFbLbI, .ksdyy {
+        border: 1px solid #4E5157 !important;
+    }
+
+
+
+</style></body></html>
