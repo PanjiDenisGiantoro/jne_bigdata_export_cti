@@ -5,9 +5,11 @@
     const path = require('path');  // Untuk memanipulasi path direktori
     const archiver = require('archiver');  // Import archiver untuk zip file
     const Bull = require('bull'); // Import Bull untuk job queue
-    const { setQueues, BullAdapter } = require('bull-board'); // Untuk memonitor job
+    const { setQueues, BullAdapter } = require('bull-board');
     const app = express();
     const port = 3005;  // Port API
+    const Sentry = require("@sentry/node");
+    const {nodeProfilingIntegration} = require("@sentry/profiling-node");
 
     // Middleware to parse JSON bodies
     app.use(express.json());
@@ -21,6 +23,24 @@
     // Membuat Job Queue menggunakan Bull
     const reportQueue = new Bull('reportQueue', {
         redis: { host: '127.0.0.1', port: 6379 }
+    });
+
+
+    Sentry.init({
+        dsn: "https://911497525f2ba3a60f2ea285b4e82520@o4506467821092864.ingest.us.sentry.io/4509234026184704",
+        integrations: [
+            nodeProfilingIntegration(),
+        ],
+        // Tracing
+        tracesSampleRate: 1.0, //  Capture 100% of the transactions
+        // Set sampling rate for profiling - this is evaluated only once per SDK.init call
+        profileSessionSampleRate: 1.0,
+        // Trace lifecycle automatically enables profiling during active traces
+        profileLifecycle: 'trace',
+
+        // Setting this option to true will send default PII data to Sentry.
+        // For example, automatic IP address collection on events
+        sendDefaultPii: true,
     });
 
     // Mendaftarkan queue untuk memonitor pekerjaan
@@ -38,75 +58,83 @@
     }
     // Fungsi untuk memproses job di queue
     reportQueue.process(async (job) => {
-        const { origin, destination, froms, thrus, user_id, TM, dateStr } = job.data;
-        console.log('Processing job with data:', job.data);
+        return await Sentry.startSpan({name: 'Process Report TCI Job' + job.id, jobId: job.id}, async (span) => {
+            const {origin, destination, froms, thrus, user_id, TM, dateStr} = job.data;
+            console.log('Processing job with data:', job.data);
 
-        let zipFileName = '';
-        let completionTime = '';
-        let dataCount = 0;  // Variable to store the number of records processed
-        let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+            let zipFileName = '';
+            let completionTime = '';
+            let dataCount = 0;  // Variable to store the number of records processed
+            let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-        try {
-            // Capture the start time
-            const startTime = Date.now();
+            try {
+                // Capture the start time
+                const startTime = Date.now();
 
-            // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-            zipFileName = await fetchDataAndExportToExcel({
-                origin,
-                destination,
-                froms,
-                thrus,
-                user_id,
-                TM,
-                dateStr
-            }).then((result) => {
-                dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                return result.zipFileName;
-            });
+                // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                zipFileName = await fetchDataAndExportToExcel({
+                    origin,
+                    destination,
+                    froms,
+                    thrus,
+                    user_id,
+                    TM,
+                    dateStr
+                }).then((result) => {
+                    dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                    return result.zipFileName;
+                });
 
-            // Capture the completion time after the job is done
-            const endTime = Date.now();
-            completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                // Capture the completion time after the job is done
+                const endTime = Date.now();
+                completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
 
-            // Calculate the elapsed time in minutes
-            elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                // Calculate the elapsed time in minutes
+                elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
 
-            const connection = await oracledb.getConnection(config);
-            const updateQuery = `
-            UPDATE CMS_COST_TRANSIT_V2_LOG
-            SET DOWNLOAD = 0, STATUS = 'Done', NAME_FILE = :filename
-            WHERE ID_JOB_REDIS = :jobId
-        `;
+                const connection = await oracledb.getConnection(config);
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET DOWNLOAD  = 0,
+                        STATUS    = 'Done',
+                        NAME_FILE = :filename
+                    WHERE ID_JOB_REDIS = :jobId
+                `;
 
-            // Prepare the update values
-            const updateValues = {
-                filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                jobId: job.id  // The job ID that we are processing
-            };
+                // Prepare the update values
+                const updateValues = {
+                    filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                    jobId: job.id  // The job ID that we are processing
+                };
 
-            // Execute the update query
-            await connection.execute(updateQuery, updateValues);
-            await connection.commit();
-            console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                // Execute the update query
+                await connection.execute(updateQuery, updateValues);
+                await connection.commit();
+                console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
 
-            return {
-                status: 'done',
-                zipFileName: zipFileName, // Add the file name to the return value
-                completionTime: completionTime, // Add the completion time
-                dataCount: dataCount,  // Number of records processed
-                elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-            };
-        } catch (error) {
-            console.error('Error processing the job:', error);
+                return {
+                    status: 'done',
+                    zipFileName: zipFileName, // Add the file name to the return value
+                    completionTime: completionTime, // Add the completion time
+                    dataCount: dataCount,  // Number of records processed
+                    elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                };
+            } catch (error) {
+                console.error('Error processing the job:', error);
+                await Sentry.startSpan({name: 'Log Error to File'+ job.id, jobId: job.id}, async () => {
 
-            // Log the error details to file
-            logErrorToFile(job.id, origin, destination, user_id, error.message);
+                    // Log the error details to file
+                    logErrorToFile(job.id, origin, destination, user_id, error.message);
 
-            return {
-                status: 'failed',
-                error: error.message
-            };
-        }
+                });
+                Sentry.captureException(error);
+
+                return {
+                    status: 'failed',
+                    error: error.message
+                };
+            }
+        });
     });
 
     // Menggunakan Promise untuk estimasi jumlah data
@@ -134,7 +162,7 @@
                         }
 
                         if (froms !== '0' && thrus !== '0') {
-                            whereClause += ` AND AWB_DATE BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                            whereClause += ` AND trunc(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
                             bindParams.froms = froms;
                             bindParams.thrus = thrus;
                         }
@@ -191,7 +219,7 @@
                 }
 
                 if (froms !== '0' && thrus !== '0') {
-                    whereClause += ` AND AWB_DATE BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                    whereClause += ` AND trunc(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
                     bindParams.froms = froms;
                     bindParams.thrus = thrus;
                 }
@@ -316,7 +344,7 @@
                     console.log(`Data berhasil diekspor ke ${fileName}`);
                 }
 
-                const zipFileName = path.join(__dirname, 'file_download', `${user_id}_${dateStr}_${timeStr}.zip`);
+                const zipFileName = path.join(__dirname, 'file_download', `TCIReport_${user_id}_${dateStr}_${timeStr}.zip`);
                 const output = fs.createWriteStream(zipFileName);
                 const archive = archiver('zip', {
                     zlib: { level: 9 }
@@ -432,6 +460,8 @@
             Estimated Data Count: ${estimatedDataCount}
             Estimated Time: ${estimatedTimeMinutes.toFixed(2)} minutes
             Status: Pending
+            created_at: ${new Date()}
+            Estimate_date: ${new Date(new Date().getTime() + estimatedTimeMinutes * 60 * 1000)}
         `;
 
             if (!fs.existsSync(path.dirname(logFilePath))) {
