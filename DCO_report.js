@@ -480,6 +480,25 @@ app.get('/getreportdco', async (req, res) => {
     }
 });
 
+app.get('/clearalljobs', async (req, res) => {
+    try {
+        // Clear all "waiting" jobs
+        const jobs = await reportQueue.getJobs(['waiting']);
+
+        // Remove all waiting jobs
+        for (const job of jobs) {
+            await job.remove();
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'All waiting jobs have been removed from the queue.',
+        });
+    } catch (err) {
+        console.error('Error clearing all jobs:', err);
+        res.status(500).send({ success: false, message: 'An error occurred while clearing all jobs.' });
+    }
+});
 
 app.get('/jobsdco', async (req, res) => {
     try {
