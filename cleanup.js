@@ -38,7 +38,7 @@ async function cleanupOldRecords() {
             SELECT NAME_FILE
             FROM CMS_COST_TRANSIT_V2_LOG
             WHERE download = 0
-              AND created_at < SYSDATE - INTERVAL '1' DAY
+              AND created_at < SYSDATE - INTERVAL '2' DAY
         `;
 
         const filesToDelete = await connection.execute(fileQuery);
@@ -64,8 +64,6 @@ async function cleanupOldRecords() {
                     // Calculate the age of the file in days
                     const fileAgeInDays = (Date.now() - stats.mtimeMs) / (1000 * 3600 * 24); // in days
 
-                    // if (fileAgeInDays > 1) {
-                        // If the file is older than 5 days, delete it
                         fs.unlink(filePath, (unlinkErr) => {
                             if (unlinkErr) {
                                 console.error('Error deleting file:', unlinkErr);

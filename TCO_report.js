@@ -50,11 +50,6 @@ const reportQueueDCI = new Bull('reportQueueDCI', {
 });
 const reportQueueDCO = new Bull('reportQueueDCO', {
     redis: {host: '127.0.0.1', port: 6379},
-    // limiter: {
-    //     max: 1, // Hanya satu job yang bisa dijalankan dalam satu waktu
-    //     duration: 86400000
-    //
-    // },
     removeOnComplete: true // Job selesai langsung dihapus dari Redis
 
 });
@@ -70,25 +65,9 @@ Sentry.init({
     profileSessionSampleRate: 1.0,
     // Trace lifecycle automatically enables profiling during active traces
     profileLifecycle: 'trace',
-
-    // Setting this option to true will send default PII data to Sentry.
     // For example, automatic IP address collection on events
     sendDefaultPii: true,
 });
-// Mendaftarkan queue untuk memonitor pekerjaan
-
-// if (cluster.isMaster) {
-//     // Fork workers for each CPU core
-//     for (let i = 0; i < numCPUs; i++) {
-//         cluster.fork();
-//     }
-//
-//     cluster.on('exit', (worker, code, signal) => {
-//         console.log(`Worker ${worker.process.pid} died`);
-//     });
-// } else {
-
-
 setQueues([new BullAdapter(reportQueue)]);
 setQueues([new BullAdapter(reportQueueTCI)]);
 setQueues([new BullAdapter(reportQueueDCI)]);
@@ -156,18 +135,15 @@ const releaseLock = async () => {
 const processJob = async (job) => {
     try {
         const jobId = job.id;
-        const isJobRunning = await redis.get('currentJobStatus');
+        console.log('Processing Job ID:', job.id, 'with queue:', job.queue.name);
+
+        const isJobRunning = await redis.get('currentJobStatus' + jobId);
         if (isJobRunning === 'running') {
-            console.log(`Job ID: ${jobId} is already running. Skipping...`);
+            console.log(`Job ID: ${jobId} is already running. Skipping...` + job.data);
             // Jika job sedang berjalan, simpan job di queue pending
             await redis.lpush('pending_jobs', JSON.stringify(job.data));  // Simpan job ke antrian
             return;
         }
-        // const lockAcquired = await acquireLock();
-        // if (!lockAcquired) {
-        //     console.log('Job is already running, skipping...');
-        //     return;
-        // }
         await redis.set('currentJobStatus', 'running');
         console.log(`Processing Job ID: ${job.id}`);
 
@@ -181,6 +157,10 @@ const processJob = async (job) => {
             fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelDCI;
         } else if (job.queue.name === 'reportQueueDCO') {
             fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelDCO;
+        }
+        if (!fetchDataAndExportToExcelFunc) {
+            console.error('Unknown queue name:', job.queue.name);
+            return;
         }
 
         if(job.queue.name === 'reportQueue') {
@@ -240,7 +220,6 @@ const processJob = async (job) => {
                     console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
                     await redis.del('currentJobStatus');
                     console.log(`Job ID: ${jobId} is done`);
-
                     // Cek apakah ada job tertunda yang perlu diproses
                     await processPendingJobs();
 
@@ -536,11 +515,27 @@ const processJob = async (job) => {
 
 const processPendingJobs = async () => {
     const pendingJob = await redis.lpop('pending_jobs');  // Ambil job pertama dari antrian pending
+    console.log('Processing next pending jobs...' + pendingJob);
+
     if (pendingJob) {
         const jobData = JSON.parse(pendingJob);
-        console.log('Processing next pending job...');
-        // Proses job yang tertunda
-        await reportQueue.add(jobData);  // Menambahkan job ke dalam queue untuk diproses
+        console.log('Processing next pending job...' + pendingJob);
+        // Menambahkan job ke dalam queue yang sesuai berdasarkan job.queue.name
+        if (jobData.queue.name === 'reportQueue') {
+            await reportQueue.add(jobData);  // Menambahkan job ke reportQueue
+            console.log('Job added to reportQueue');
+        } else if (jobData.queue.name === 'reportQueueTCI') {
+            await reportQueueTCI.add(jobData);  // Menambahkan job ke reportQueueTCI
+            console.log('Job added to reportQueueTCI');
+        } else if (jobData.queue.name === 'reportQueueDCI') {
+            await reportQueueDCI.add(jobData);  // Menambahkan job ke reportQueueDCI
+            console.log('Job added to reportQueueDCI');
+        } else if (jobData.queue.name === 'reportQueueDCO') {
+            await reportQueueDCO.add(jobData);  // Menambahkan job ke reportQueueDCO
+            console.log('Job added to reportQueueDCO');
+        } else {
+            console.log(`Unknown queue name: ${jobData.queue.name}`);
+        }
     } else {
         console.log('No pending jobs.');
     }
@@ -824,11 +819,10 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
             const result = await connection.execute(`
                 SELECT
 
-                    ROWNUM AS NO, 
+--                     ROWNUM AS NO, 
 
-    ''''|| AWB_NO AS CONNOTE_NUMBER, 
-
-   ''''|| AWB_DATE AS CONNOTE_DATE, 
+    ''''|| AWB_NO AS CONNOTE_NUMBER,
+TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS CONNOTE_DATE, -- Format tanggal
 
     SERVICES_CODE AS SERVICE_CONNOTE, 
 
@@ -846,7 +840,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
 
     TRANSIT_MANIFEST_NO AS TRANSIT_MANIFEST_NUMBER, 
 
-    TRANSIT_MANIFEST_DATE AS TRANSIT_MANIFEST_DATE, 
+TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DATE, -- Format tanggal
 
     TRANSIT_MANIFEST_ROUTE, --BAG_ROUTE 
 
@@ -889,9 +883,9 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
             `, bindParams);
 
+            let no = 1;  // Initialize counter for 'NO'
 
             dataCount = result.rows.length;
-
             const chunkSize = 50000;
             const chunks = [];
             for (let i = 0; i < result.rows.length; i += chunkSize) {
@@ -989,7 +983,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     {header: 'DOWNLOAD DATE', key: 'DOWNLOAD_DATE'}
                 ];
                 chunk.forEach((row) => {
-                    worksheet.addRow(row);
+                    worksheet.addRow([no++, ...row]);  // Add 'no' before the row values
                 });
 
                 const fileName = path.join(folderPath, `TCOReport_${dateStr}_part${i + 1}.xlsx`);
@@ -1099,7 +1093,7 @@ async function fetchDataAndExportToExcelTCI({
                     SUM(OTHER_FEE) AS OTHER_FEE,
                     SUM(NVL(TRANSIT_FEE,0) +  NVL(HANDLING_FEE,0)  + NVL(OTHER_FEE,0)) AS TOTAL,
 
-                     SYSDATE AS DOWNLOAD_DATE
+                    SYSDATE AS DOWNLOAD_DATE
                 FROM CMS_COST_TRANSIT_V2
                          ${whereClause}
                     AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
@@ -1111,6 +1105,7 @@ async function fetchDataAndExportToExcelTCI({
                     SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
             `, bindParams);
             dataCount = result.rows.length;
+            let no = 1;  // Initialize counter for 'NO'
             const chunkSize = 50000;
             const chunks = [];
             for (let i = 0; i < result.rows.length; i += chunkSize) {
@@ -1284,9 +1279,6 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
             const result = await connection.execute(`
 
                 SELECT
-
-                    ROWNUM AS NO, 
-
        MANIFEST_NO, 
 
        --TO_CHAR(MANIFEST_DATE,'MM-DD-RRRR') MANIFEST_DATE, 
@@ -1351,6 +1343,7 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
 
             dataCount = result.rows.length;
 
+            let no = 1;
             const chunkSize = 50000;
             const chunks = [];
             for (let i = 0; i < result.rows.length; i += chunkSize) {
@@ -1425,9 +1418,8 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
                     {header: 'BIAYA PENERUS', key: 'LINEHAUL_FIRST'},
                     {header: 'BIAYA PENERUS NEXT KG', key: 'LINEHAUL_NEXT'},
                 ];
-                let rowNumber = 1;
                 chunk.forEach((row) => {
-                    worksheet.addRow([rowNumber++, ...row]);
+                    worksheet.addRow([no++, ...row]);  // Add 'no' before the row values
                 });
 
                 const fileName = path.join(folderPath, `DCIReport_${dateStr}_part${i + 1}.xlsx`);
@@ -1500,7 +1492,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
 
 
             const result = await connection.execute(`
-                SELECT ROWNUM AS NO,
+                SELECT
            MANIFEST_NO,
                     TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
            SERVICES_CODE,
@@ -1616,7 +1608,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 ]
 
                 chunk.forEach((row) => {
-                    worksheet.addRow(row);
+                    worksheet.addRow([no++, ...row]);  // Add 'no' before the row values
                 });
 
 
@@ -1663,15 +1655,15 @@ app.get('/getreporttco', async (req, res) => {
         }
 
         // Get the number of jobs that are waiting or active
-        const activeJobs = await reportQueue.getJobs(['waiting', 'active']);
+        // const activeJobs = await reportQueue.getJobs(['waiting', 'active']);
 
         // Check if the queue has more than 20 jobs
-        if (activeJobs.length >= 20) {
-            return res.status(503).json({
-                success: false,
-                message: 'Antrian penuh, coba beberapa saat lagi.'
-            });
-        }
+        // if (activeJobs.length >= 20) {
+        //     return res.status(503).json({
+        //         success: false,
+        //         message: 'Antrian penuh, coba beberapa saat lagi.'
+        //     });
+        // }
 
         // Estimasi jumlah data
         const estimatedDataCount = await estimateDataCount({origin, destination, froms, thrus, user_id});
@@ -1892,15 +1884,15 @@ app.get('/getreportdci', async (req, res) => {
         }
 
         // Get the number of jobs that are waiting or active
-        const activeJobs = await reportQueueDCI.getJobs(['waiting', 'active']);
-
-        // Check if the queue has more than 20 jobs
-        if (activeJobs.length >= 10) {
-            return res.status(503).json({
-                success: false,
-                message: 'Antrian penuh, coba beberapa saat lagi.'
-            });
-        }
+        // const activeJobs = await reportQueueDCI.getJobs(['waiting', 'active']);
+        //
+        // // Check if the queue has more than 20 jobs
+        // if (activeJobs.length >= 10) {
+        //     return res.status(503).json({
+        //         success: false,
+        //         message: 'Antrian penuh, coba beberapa saat lagi.'
+        //     });
+        // }
         // Estimasi jumlah data
         const estimatedDataCount = await estimateDataCountDCI({
             origin,
@@ -1927,6 +1919,7 @@ app.get('/getreportdci', async (req, res) => {
             user_id,
             service,
             dateStr
+            // queue: { name: 'reportDCI'}
         });
 
 
@@ -2009,17 +2002,6 @@ app.get('/getreportdco', async (req, res) => {
 
         if (!origin || !destination || !froms || !thrus || !user_id || !service) {
             return res.status(400).json({success: false, message: 'Missing required parameters'});
-        }
-
-        // Get the number of jobs that are waiting or active
-        const activeJobs = await reportQueueDCO.getJobs(['waiting', 'active']);
-
-        // Check if the queue has more than 20 jobs
-        if (activeJobs.length >= 10) {
-            return res.status(503).json({
-                success: false,
-                message: 'Antrian penuh, coba beberapa saat lagi.'
-            });
         }
 
         // Estimasi jumlah data
@@ -2533,15 +2515,6 @@ app.get('/downloadtco/:jobId', async (req, res) => {
                 if (downloadErr) {
                     return res.status(500).send({success: false, message: 'Error downloading the file.'});
                 }
-
-                // After successful download, delete the file
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) {
-                        console.error('Error deleting the file:', unlinkErr);
-                    } else {
-                        console.log(`File ${path.basename(filePath)} deleted after download.`);
-                    }
-                });
             });
         });
     } catch (err) {
@@ -2606,15 +2579,6 @@ app.get('/downloadtci/:jobId', async (req, res) => {
                 if (downloadErr) {
                     return res.status(500).send({success: false, message: 'Error downloading the file.'});
                 }
-
-                // After successful download, delete the file
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) {
-                        console.error('Error deleting the file:', unlinkErr);
-                    } else {
-                        console.log(`File ${path.basename(filePath)} deleted after download.`);
-                    }
-                });
             });
         });
     } catch (err) {
@@ -2680,15 +2644,6 @@ app.get('/downloaddci/:jobId', async (req, res) => {
                 if (downloadErr) {
                     return res.status(500).send({success: false, message: 'Error downloading the file.'});
                 }
-
-                // After successful download, delete the file
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) {
-                        console.error('Error deleting the file:', unlinkErr);
-                    } else {
-                        console.log(`File ${path.basename(filePath)} deleted after download.`);
-                    }
-                });
             });
         });
     } catch (err) {
@@ -2754,14 +2709,6 @@ app.get('/downloaddco/:jobId', async (req, res) => {
                     return res.status(500).send({success: false, message: 'Error downloading the file.'});
                 }
 
-                // After successful download, delete the file
-                fs.unlink(filePath, (unlinkErr) => {
-                    if (unlinkErr) {
-                        console.error('Error deleting the file:', unlinkErr);
-                    } else {
-                        console.log(`File ${path.basename(filePath)} deleted after download.`);
-                    }
-                });
             });
         });
     } catch (err) {
@@ -2781,6 +2728,29 @@ app.get('/progresstci', (req, res) => {
 // Serve the progresstci.html when visiting the /progress URL
 app.get('/progressdci', (req, res) => {
     res.sendFile(__dirname + '/public/progressdci.html');
+});
+
+
+app.get('/checkPendingJobs', async (req, res) => {
+    try {
+        const length = await redis.llen('pending_jobs');
+        res.json({ message: `There are ${length} jobs in the pending_jobs queue.` });
+    } catch (error) {
+        console.error('Error checking pending jobs length:', error);
+        res.status(500).json({ error: 'Failed to check pending jobs length' });
+    }
+});
+
+// Route to get all pending jobs from the 'pending_jobs' queue
+app.get('/getPendingJobs', async (req, res) => {
+    try {
+        const job = await redis.lpop('pending_jobs');  // Ambil job pertama dari antrian pending
+        const jobData = jobs.map(job => JSON.parse(job));  // Parse the JSON data for each job
+        res.json({ pendingJobs: jobData });
+    } catch (error) {
+        console.error('Error retrieving pending jobs:', error);
+        res.status(500).json({ error: 'Failed to retrieve pending jobs' });
+    }
 });
 
 // Start the server
