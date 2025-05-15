@@ -16,9 +16,9 @@ const Redis = require('ioredis');
 const redis = new Redis(); // Koneksi ke Redis server
 const JOB_LOCK_KEY = 'job_lock';
 const ProgressBar = require('progress');
-const { format } = require('date-fns');  // Import the format function from date-fns
+const {format} = require('date-fns');  // Import the format function from date-fns
 const moment = require('moment');  // Import moment.js
-
+// require('dotenv').config();
 // Middleware to parse JSON bodies
 app.use(express.json());
 // const numCPUs = os.cpus().length;
@@ -163,9 +163,9 @@ const processJob = async (job) => {
             return;
         }
 
-        if(job.queue.name === 'reportQueue') {
+        if (job.queue.name === 'reportQueue') {
             await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, user_id, dateStr} = job.data;
+                const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
 
                 let zipFileName = '';
                 let completionTime = '';
@@ -183,7 +183,8 @@ const processJob = async (job) => {
                         froms,
                         thrus,
                         user_id,
-                        dateStr
+                        dateStr,
+                        jobId: job.id
                     }).then((result) => {
                         dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
                         return result.zipFileName;
@@ -200,9 +201,9 @@ const processJob = async (job) => {
                     const connection = await oracledb.getConnection(config);
                     const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD = 0,
-                            STATUS = 'Done',
-                            NAME_FILE = :filename,
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Done',
+                            NAME_FILE  = :filename,
                             UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM')
                         WHERE ID_JOB_REDIS = :jobId
                     `;
@@ -246,9 +247,9 @@ const processJob = async (job) => {
                     };
                 }
             });
-        }else if(job.queue.name === 'reportQueueTCI') {
+        } else if (job.queue.name === 'reportQueueTCI') {
             await Sentry.startSpan({name: 'Process Report TCI Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, user_id, TM, user_session, dateStr} = job.data;
+                const {origin, destination, froms, thrus, user_id, TM, user_session, dateStr, jobId} = job.data;
                 console.log('Processing job with data:', job.data);
 
                 let zipFileName = '';
@@ -269,7 +270,8 @@ const processJob = async (job) => {
                         user_id,
                         TM,
                         user_session,
-                        dateStr
+                        dateStr,
+                        jobId: job.id
                     }).then((result) => {
                         dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
                         return result.zipFileName;
@@ -286,9 +288,9 @@ const processJob = async (job) => {
                     const connection = await oracledb.getConnection(config);
                     const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD  = 0,
-                            STATUS    = 'Done',
-                            NAME_FILE = :filename,
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Done',
+                            NAME_FILE  = :filename,
                             UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM')
                         WHERE ID_JOB_REDIS = :jobId
                     `;
@@ -333,9 +335,9 @@ const processJob = async (job) => {
                     };
                 }
             });
-        }else if(job.queue.name === 'reportQueueDCI') {
+        } else if (job.queue.name === 'reportQueueDCI') {
             await Sentry.startSpan({name: 'Process Report DCI Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, user_id, service, dateStr} = job.data;
+                const {origin, destination, froms, thrus, user_id, service, dateStr,jobId} = job.data;
                 console.log('Processing job with data:', job.data);
 
                 let zipFileName = '';
@@ -355,7 +357,8 @@ const processJob = async (job) => {
                         thrus,
                         user_id,
                         service,
-                        dateStr
+                        dateStr,
+                        jobId: job.id
                     }).then((result) => {
                         dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
                         return result.zipFileName;
@@ -372,9 +375,9 @@ const processJob = async (job) => {
                     const connection = await oracledb.getConnection(config);
                     const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD  = 0,
-                            STATUS    = 'Done',
-                            NAME_FILE = :filename,
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Done',
+                            NAME_FILE  = :filename,
                             UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM')
                         WHERE ID_JOB_REDIS = :jobId
                     `;
@@ -419,9 +422,9 @@ const processJob = async (job) => {
                     };
                 }
             });
-        }else if(job.queue.name === 'reportQueueDCO') {
+        } else if (job.queue.name === 'reportQueueDCO') {
             await Sentry.startSpan({name: 'Process Report DCO Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, service, user_id, dateStr} = job.data;
+                const {origin, destination, froms, thrus, service, user_id, dateStr, jobId} = job.data;
                 console.log('Processing job with data:', job.data);
 
                 let zipFileName = '';
@@ -441,7 +444,8 @@ const processJob = async (job) => {
                         thrus,
                         user_id,
                         service,
-                        dateStr
+                        dateStr,
+                        jobId: job.id
                     }).then((result) => {
                         dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
                         return result.zipFileName;
@@ -458,9 +462,9 @@ const processJob = async (job) => {
                     const connection = await oracledb.getConnection(config);
                     const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD  = 0,
-                            STATUS    = 'Done',
-                            NAME_FILE = :filename,
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Done',
+                            NAME_FILE  = :filename,
                             UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM')
                         WHERE ID_JOB_REDIS = :jobId
                     `;
@@ -558,15 +562,12 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
                     reject('Error connecting to database: ' + err.message);
                 } else {
                     connection = conn;
-
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
-
                     if (origin !== '0') {
                         whereClause += ` AND OUTBOND_MANIFEST_ROUTE LIKE :origin`;
                         bindParams.origin = origin + '%';
                     }
-
                     if (destination !== '0') {
                         whereClause += ` AND OUTBOND_MANIFEST_ROUTE LIKE :destination`;
                         bindParams.destination = destination + '%';
@@ -581,12 +582,11 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
 
                     // Query untuk estimasi jumlah data
                     connection.execute(`
-                            SELECT COUNT(*) AS DATA_COUNT
-                            FROM CMS_COST_TRANSIT_V2 ${whereClause}
-                                AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE 
+                        SELECT COUNT(*) AS DATA_COUNT
+                        FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE 
     AND CNOTE_WEIGHT > 0
 
-                        `, bindParams, (err, result) => {
+                    `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
                         } else {
@@ -637,16 +637,14 @@ async function estimateDataCountTCI({origin, destination, froms, thrus, user_id,
 
                     // Query untuk estimasi jumlah data
                     connection.execute(`
-                            SELECT COUNT(*) AS DATA_COUNT
-                            FROM CMS_COST_TRANSIT_V2
-                            ${whereClause}
-                            AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
+                        SELECT COUNT(*) AS DATA_COUNT
+                        FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                             AND CNOTE_WEIGHT > 0
-                            
-                            
-                            
-                            
-                        `, bindParams, (err, result) => {
+
+
+
+
+                    `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
                         } else {
@@ -697,21 +695,19 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
 
                     // Query untuk estimasi jumlah data
                     connection.execute(`
-                            SELECT COUNT(*) AS DATA_COUNT
-                            FROM CMS_COST_DELIVERY_V2
-                                     ${whereClause}
-                                AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                        SELECT COUNT(*) AS DATA_COUNT
+                        FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
                 --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
                 AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
 
                 AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
 
                 AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
-                            
-                            
-                            
-                            
-                        `, bindParams, (err, result) => {
+
+
+
+
+                    `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
                         } else {
@@ -763,8 +759,7 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                     // Query untuk estimasi jumlah data
                     connection.execute(`
                         SELECT COUNT(*) AS DATA_COUNT
-                        FROM CMS_COST_DELIVERY_V2 ${whereClause}
-                            AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                        FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
                              AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
        AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
        AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
@@ -783,7 +778,7 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
     });
 }
 
-async function fetchDataAndExportToExcel({origin, destination, froms, thrus, user_id, dateStr}) {
+async function fetchDataAndExportToExcel({origin, destination, froms, thrus, user_id, dateStr, jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -821,63 +816,61 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
 
 --                     ROWNUM AS NO, 
 
-    ''''|| AWB_NO AS CONNOTE_NUMBER,
-TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS CONNOTE_DATE, -- Format tanggal
+'''' || AWB_NO                                                      AS CONNOTE_NUMBER,
+TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM')                         AS CONNOTE_DATE,          -- Format tanggal
 
-    SERVICES_CODE AS SERVICE_CONNOTE, 
+SERVICES_CODE                                                       AS SERVICE_CONNOTE,
 
-    OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER, 
+OUTBOND_MANIFEST_NO                                                 AS OUTBOND_MANIFEST_NUMBER,
 
-    OUTBOND_MANIFEST_DATE, 
+OUTBOND_MANIFEST_DATE,
 
-    ORIGIN, 
+ORIGIN,
 
-    DESTINATION, 
+DESTINATION,
 
-    ZONA_DESTINATION, 
+ZONA_DESTINATION,
 
-    OUTBOND_MANIFEST_ROUTE AS MANIFEST_ROUTE, 
+OUTBOND_MANIFEST_ROUTE                                              AS MANIFEST_ROUTE,
 
-    TRANSIT_MANIFEST_NO AS TRANSIT_MANIFEST_NUMBER, 
+TRANSIT_MANIFEST_NO                                                 AS TRANSIT_MANIFEST_NUMBER,
 
-TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM')            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
 
-    TRANSIT_MANIFEST_ROUTE, --BAG_ROUTE 
+TRANSIT_MANIFEST_ROUTE,                                                                       --BAG_ROUTE 
 
-    SMU_NUMBER, 
+SMU_NUMBER,
 
-    FLIGHT_NUMBER, 
+FLIGHT_NUMBER,
 
-    BRANCH_TRANSPORTER, 
+BRANCH_TRANSPORTER,
 
-    ''''|| BAG_NO AS BAG_NUMBER, 
+'''' || BAG_NO                                                      AS BAG_NUMBER,
 
-    SERVICE_BAG, 
+SERVICE_BAG,
 
-    MODA, 
+MODA,
 
-    MODA_TYPE, 
+MODA_TYPE,
 
-    CNOTE_WEIGHT AS WEIGHT_CONNOTE, 
+CNOTE_WEIGHT                                                        AS WEIGHT_CONNOTE,
 
-    ACT_WEIGHT AS WEIGHT_BAG, 
+ACT_WEIGHT                                                          AS WEIGHT_BAG,
 
-    Round(PRORATED_WEIGHT,3) AS PRORATED_WEIGHT, 
+Round(PRORATED_WEIGHT, 3)                                           AS PRORATED_WEIGHT,
 
-    SUM(TRANSIT_FEE) AS TRANSIT_FEE, -- Gunakan SUM 
+SUM(TRANSIT_FEE)                                                    AS TRANSIT_FEE,           -- Gunakan SUM 
 
-    SUM(HANDLING_FEE) AS HANDLING_FEE, -- Gunakan SUM 
+SUM(HANDLING_FEE)                                                   AS HANDLING_FEE,          -- Gunakan SUM 
 
-    SUM(OTHER_FEE) AS OTHER_FEE, -- Gunakan SUM 
+SUM(OTHER_FEE)                                                      AS OTHER_FEE,             -- Gunakan SUM 
 
-    SUM(NVL(TRANSIT_FEE,0) +  NVL(HANDLING_FEE,0)  + NVL(OTHER_FEE,0)) AS TOTAL, 
-    ''''|| SYSDATE AS DOWNLOAD_DATE
-                FROM CMS_COST_TRANSIT_V2
-                    ${whereClause}
-                    AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
+SUM(NVL(TRANSIT_FEE, 0) + NVL(HANDLING_FEE, 0) + NVL(OTHER_FEE, 0)) AS TOTAL,
+'''' || SYSDATE                                                     AS DOWNLOAD_DATE
+                FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                     AND CNOTE_WEIGHT > 0
                 GROUP BY
-                    ROWNUM,OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
+                    ROWNUM, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
                     BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
                     ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
                     SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
@@ -901,7 +894,7 @@ TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DAT
                 fs.mkdirSync(folderPath);
                 console.log(`Folder ${dateStr} telah dibuat.`);
             }
-            const bar = new ProgressBar(':bar :percent', { total: chunks.length, width: 20 });
+            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
 
 
             // Loop through each chunk, create an Excel file, and save it
@@ -976,10 +969,10 @@ TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DAT
                     {header: 'WEIGHT CONNOTE', key: 'WEIGHT_CONNOTE'},
                     {header: 'WEIGHT BAG', key: 'WEIGHT_BAG'},
                     {header: 'PRORATED WEIGHT', key: 'PRORATED_WEIGHT'},
-                    {header: 'TRANSIT FEE', key: 'TRANSIT_FEE', style: { numFmt: '#,##0' }},  // Currency format
-                    {header: 'HANDLING FEE', key: 'HANDLING_FEE', style: { numFmt: '#,##0' }},  // Currency format
-                    {header: 'OTHER FEE', key: 'OTHER_FEE', style: { numFmt: '#,##0' }},  // Currency format
-                    {header: 'TOTAL', key: 'TOTAL', style: { numFmt: '#,##0' }},
+                    {header: 'TRANSIT FEE', key: 'TRANSIT_FEE', style: {numFmt: '#,##0'}},  // Currency format
+                    {header: 'HANDLING FEE', key: 'HANDLING_FEE', style: {numFmt: '#,##0'}},  // Currency format
+                    {header: 'OTHER FEE', key: 'OTHER_FEE', style: {numFmt: '#,##0'}},  // Currency format
+                    {header: 'TOTAL', key: 'TOTAL', style: {numFmt: '#,##0'}},
                     {header: 'DOWNLOAD DATE', key: 'DOWNLOAD_DATE'}
                 ];
                 chunk.forEach((row) => {
@@ -989,7 +982,19 @@ TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DAT
                 const fileName = path.join(folderPath, `TCOReport_${dateStr}_part${i + 1}.xlsx`);
                 await workbook.xlsx.writeFile(fileName);
                 console.log(`Data berhasil diekspor ke ${fileName}`);
-                bar.tick();
+                console.log(`job id ${jobId}`);
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId
+                `;
+                const updateValues = {
+                    summary_file: i + 1, // Update the summary_file with the number of parts processed
+                    jobId: jobId
+                };
+                await connection.execute(updateQuery, updateValues);
+                await connection.commit();
+                // bar.tick();
 
             }
 
@@ -1027,7 +1032,8 @@ async function fetchDataAndExportToExcelTCI({
                                                 user_id,
                                                 TM,
                                                 user_session,
-                                                dateStr
+                                                dateStr,
+                                                jobId
                                             }) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -1035,7 +1041,9 @@ async function fetchDataAndExportToExcelTCI({
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            let userNameQuery = `SELECT USER_NAME FROM ORA_USER WHERE USER_ID = :user_id`;
+            let userNameQuery = `SELECT USER_NAME
+                                 FROM ORA_USER
+                                 WHERE USER_ID = :user_id`;
             const userResult = await connection.execute(userNameQuery, [user_id]);
             let userName = userResult.rows.length > 0 ? userResult.rows[0][0] : 'Unknown';
 
@@ -1064,39 +1072,36 @@ async function fetchDataAndExportToExcelTCI({
             }
 
             const result = await connection.execute(`
-                SELECT
-                    ''''|| AWB_NO AS CONNOTE_NUMBER,
+                SELECT '''' || AWB_NO                                                      AS CONNOTE_NUMBER,
 --                      AWB_DATE AS CONNOTE_DATE,
-                    TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS AWB_DATE, -- Format tanggal
-                    SERVICES_CODE AS SERVICE_CONNOTE,
-                    OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
-                    TO_CHAR(OUTBOND_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS OUTBOND_MANIFEST_DATE, -- Format tanggal
-                    ORIGIN,
-                    DESTINATION,
-                    ZONA_DESTINATION,
-                    OUTBOND_MANIFEST_ROUTE AS MANIFEST_ROUTE,
-                    TRANSIT_MANIFEST_NO AS TRANSIT_MANIFEST_NUMBER,
-                    TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DATE, -- Format tanggal
-                    TRANSIT_MANIFEST_ROUTE,
-                    SMU_NUMBER,
-                    FLIGHT_NUMBER,
-                    BRANCH_TRANSPORTER,
-                    ''''|| BAG_NO AS BAG_NUMBER,
-                    SERVICE_BAG,
-                    MODA,
-                    MODA_TYPE,
-                    round(CNOTE_WEIGHT,3) AS WEIGHT_CONNOTE,
-                    round(ACT_WEIGHT,3) AS WEIGHT_BAG,
-                    round(PRORATED_WEIGHT,3) AS PRORATED_WEIGHT,
-                    SUM(TRANSIT_FEE) AS TRANSIT_FEE,
-                    SUM(HANDLING_FEE) AS HANDLING_FEE,
-                    SUM(OTHER_FEE) AS OTHER_FEE,
-                    SUM(NVL(TRANSIT_FEE,0) +  NVL(HANDLING_FEE,0)  + NVL(OTHER_FEE,0)) AS TOTAL,
+                       TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM')                         AS AWB_DATE,              -- Format tanggal
+                       SERVICES_CODE                                                       AS SERVICE_CONNOTE,
+                       OUTBOND_MANIFEST_NO                                                 AS OUTBOND_MANIFEST_NUMBER,
+                       TO_CHAR(OUTBOND_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM')            AS OUTBOND_MANIFEST_DATE, -- Format tanggal
+                       ORIGIN,
+                       DESTINATION,
+                       ZONA_DESTINATION,
+                       OUTBOND_MANIFEST_ROUTE                                              AS MANIFEST_ROUTE,
+                       TRANSIT_MANIFEST_NO                                                 AS TRANSIT_MANIFEST_NUMBER,
+                       TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM')            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+                       TRANSIT_MANIFEST_ROUTE,
+                       SMU_NUMBER,
+                       FLIGHT_NUMBER,
+                       BRANCH_TRANSPORTER,
+                       '''' || BAG_NO                                                      AS BAG_NUMBER,
+                       SERVICE_BAG,
+                       MODA,
+                       MODA_TYPE,
+                       round(CNOTE_WEIGHT, 3)                                              AS WEIGHT_CONNOTE,
+                       round(ACT_WEIGHT, 3)                                                AS WEIGHT_BAG,
+                       round(PRORATED_WEIGHT, 3)                                           AS PRORATED_WEIGHT,
+                       SUM(TRANSIT_FEE)                                                    AS TRANSIT_FEE,
+                       SUM(HANDLING_FEE)                                                   AS HANDLING_FEE,
+                       SUM(OTHER_FEE)                                                      AS OTHER_FEE,
+                       SUM(NVL(TRANSIT_FEE, 0) + NVL(HANDLING_FEE, 0) + NVL(OTHER_FEE, 0)) AS TOTAL,
 
-                    SYSDATE AS DOWNLOAD_DATE
-                FROM CMS_COST_TRANSIT_V2
-                         ${whereClause}
-                    AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
+                       SYSDATE                                                             AS DOWNLOAD_DATE
+                FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                     AND CNOTE_WEIGHT > 0
                 GROUP BY
                     OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
@@ -1210,6 +1215,19 @@ async function fetchDataAndExportToExcelTCI({
                 const fileName = path.join(folderPath, `TCIReport_${dateStr}_part${i + 1}.xlsx`);
                 await workbook.xlsx.writeFile(fileName);
 
+                console.log(`job id ${jobId}`);
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId
+                `;
+                const updateValues = {
+                    summary_file: i + 1, // Update the summary_file with the number of parts processed
+                    jobId: jobId
+                };
+                await connection.execute(updateQuery, updateValues);
+                await connection.commit();
+
                 console.log(`Data berhasil diekspor ke ${fileName}`);
             }
 
@@ -1240,14 +1258,16 @@ async function fetchDataAndExportToExcelTCI({
 }
 
 
-async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, service, user_id, dateStr}) {
+async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, service, user_id, dateStr, jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            let userNameQuery = `SELECT USER_NAME FROM ORA_USER WHERE USER_ID = :user_id`;
+            let userNameQuery = `SELECT USER_NAME
+                                 FROM ORA_USER
+                                 WHERE USER_ID = :user_id`;
             const userResult = await connection.execute(userNameQuery, [user_id]);
             let userName = userResult.rows.length > 0 ? userResult.rows[0][0] : 'Unknown';
 
@@ -1278,59 +1298,40 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
 
             const result = await connection.execute(`
 
-                SELECT
-       MANIFEST_NO, 
+                SELECT '''' || CNOTE_NO                                 AS CNOTE_NO,
+                       TO_CHAR(CNOTE_DATE, 'MM/DD/YYYY HH:MI:SS AM')    AS CNOTE_DATE,     -- Format tanggal
+                       ORIGIN,
+                       DESTINATION,
+                       ZONA_DESTINATION,
+                       SERVICES_CODE,
+                       NVL(QTY, 0)                                         QTY,
+                       CASE
 
-       --TO_CHAR(MANIFEST_DATE,'MM-DD-RRRR') MANIFEST_DATE, 
-                    TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
+                           WHEN WEIGHT = 0 THEN 0
 
-       MANIFEST_DATE, 
+                           WHEN WEIGHT < 1 THEN 1
 
-       SERVICES_CODE, 
+                           WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
 
-       CASE WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG' ELSE 'EXP' END TIPE, 
+                           ELSE FLOOR(WEIGHT)
+                           END                                             WEIGHT,
+                       nvl(AMOUNT, 0)                                      AMOUNT,
 
-       ORIGIN, 
+                       MANIFEST_NO,
+                       --TO_CHAR(MANIFEST_DATE,'MM-DD-RRRR') MANIFEST_DATE, 
+                       TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS MANIFEST_DATE,  -- Format tanggal
 
-       DESTINATION, 
+                       NVL(DELIVERY, 0)                                    DELIVERY,
 
-       ZONA_DESTINATION, 
+                       NVL(DELIVERY_SPS, 0)                                DELIVERY_SPS,
 
-       ''''||CNOTE_NO AS CNOTE_NO, 
+                       NVL(TRANSIT, 0)                                  AS BIAYA_TRANSIT,
 
-                    TO_CHAR(CNOTE_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS CNOTE_DATE, -- Format tanggal
+                       NVL(LINEHAUL_FIRST, 0)                              LINEHAUL_FIRST, -- remark by ibnu 01 oct 2024 di ambil nilai inehaulnya saja  
 
-       NVL(QTY,0) QTY, 
-
-       CASE      
-
-             WHEN WEIGHT = 0 THEN 0 
-
-             WHEN WEIGHT < 1 THEN 1 
-
-             WHEN RPAD(REGEXP_SUBSTR(WEIGHT , '[[:digit:]]+$'),3,0) > 300 THEN CEIL(WEIGHT ) 
-
-             ELSE FLOOR(WEIGHT )
-
-                END WEIGHT, 
-
-       NVL(DELIVERY,0) DELIVERY, 
-
-       NVL(DELIVERY_SPS, 0) DELIVERY_SPS, 
-
-       NVL(TRANSIT,0)  AS BIAYA_TRANSIT, 
-
-       NVL(LINEHAUL_FIRST,0) LINEHAUL_FIRST,    -- remark by ibnu 01 oct 2024 di ambil nilai inehaulnya saja  
-
-       nvl(AMOUNT,0) AMOUNT, 
-
-       nvl(LINEHAUL_NEXT,0) LINEHAUL_NEXT 
-
-        FROM CMS_COST_DELIVERY_V2
-
-                ${whereClause}
-
-                AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                       nvl(LINEHAUL_NEXT, 0)                               LINEHAUL_NEXT
+--                     CASE WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG' ELSE 'EXP' END TIPE, 
+                FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
 
                 --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
 
@@ -1358,7 +1359,7 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
                 fs.mkdirSync(folderPath);
                 console.log(`Folder ${dateStr} telah dibuat.`);
             }
-            const bar = new ProgressBar(':bar :percent', { total: chunks.length, width: 20 });
+            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
 
             // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
@@ -1424,7 +1425,21 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
 
                 const fileName = path.join(folderPath, `DCIReport_${dateStr}_part${i + 1}.xlsx`);
                 await workbook.xlsx.writeFile(fileName);
-                bar.tick();
+                console.log(`job id ${jobId}`);
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId
+                `;
+                const updateValues = {
+                    summary_file: i + 1, // Update the summary_file with the number of parts processed
+                    jobId: jobId
+                };
+                await connection.execute(updateQuery, updateValues);
+                await connection.commit();
+
+
+                // bar.tick();
 
                 console.log(`Data berhasil diekspor ke ${fileName}`);
             }
@@ -1455,14 +1470,16 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
     });
 }
 
-async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, service, user_id, dateStr}) {
+async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, service, user_id, dateStr,jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            let userNameQuery = `SELECT USER_NAME FROM ORA_USER WHERE USER_ID = :user_id`;
+            let userNameQuery = `SELECT USER_NAME
+                                 FROM ORA_USER
+                                 WHERE USER_ID = :user_id`;
             const userResult = await connection.execute(userNameQuery, [user_id]);
             let userName = userResult.rows.length > 0 ? userResult.rows[0][0] : 'Unknown';
 
@@ -1492,41 +1509,40 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
 
 
             const result = await connection.execute(`
-                SELECT
-           MANIFEST_NO,
-                    TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
-           SERVICES_CODE,
-           CASE 
-               WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG' 
-               ELSE 'EXP'
-                END AS TIPE,
-           ORIGIN,
-           DESTINATION,
-           ZONA_DESTINATION,
-           '''' || CNOTE_NO AS CNOTE_NO,
-                    TO_CHAR(CNOTE_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS CNOTE_DATE, -- Format tanggal
-           NVL(QTY, 0) AS QTY,
-           CASE     
-               WHEN WEIGHT = 0 THEN 0
-               WHEN WEIGHT < 1 THEN 1
---                WHEN WEIGHT > 300 THEN CEIL(WEIGHT)  -- Rounds up if weight > 300
+                SELECT '''' || CNOTE_NO                                 AS CNOTE_NO,
+                       TO_CHAR(CNOTE_DATE, 'MM/DD/YYYY HH:MI:SS AM')    AS CNOTE_DATE,    -- Format tanggal
+                       ORIGIN,
+                       DESTINATION,
+                       NVL(QTY, 0)                                      AS QTY,
+                       ZONA_DESTINATION,
+                       SERVICES_CODE,
+                       CASE
+                           WHEN WEIGHT = 0 THEN 0
+                           WHEN WEIGHT < 1 THEN 1
+                           --                WHEN WEIGHT > 300 THEN CEIL(WEIGHT)  -- Rounds up if weight > 300
 --                ELSE ROUND(WEIGHT)  -- Rounds to the nearest integer
 --                 END AS WEIGHT,
-                      WHEN RPAD(REGEXP_SUBSTR(WEIGHT , '[[:digit:]]+$'),3,0) > 300 THEN CEIL(WEIGHT )
-             ELSE FLOOR(WEIGHT )
-                END WEIGHT,
-           NVL(DELIVERY, 0) AS DELIVERY,
-           NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
-           NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
-           NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
-           NVL(AMOUNT, 0) AS AMOUNT,
-           NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
-    FROM CMS_COST_DELIVERY_V2
-     ${whereClause}
-                AND SUBSTR(ORIGIN, 1, 3) <> SUBSTR(DESTINATION, 1, 3)
+                           WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                           ELSE FLOOR(WEIGHT)
+                           END                                             WEIGHT,
+                       NVL(AMOUNT, 0)                                   AS AMOUNT,
+                       MANIFEST_NO,
+                       TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
+
+                       NVL(DELIVERY, 0)                                 AS DELIVERY,
+                       NVL(DELIVERY_SPS, 0)                             AS DELIVERY_SPS,
+                       NVL(TRANSIT, 0)                                  AS BIAYA_TRANSIT,
+                       NVL(LINEHAUL_FIRST, 0)                           AS LINEHAUL_FIRST,
+                       NVL(LINEHAUL_NEXT, 0)                            AS LINEHAUL_NEXT,
+                --                     CASE
+--                         WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+--                         ELSE 'EXP'
+--                         END AS TIPE,
+
+                FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN, 1, 3) <> SUBSTR(DESTINATION, 1, 3)
                 AND SERVICES_CODE NOT IN ('CML', 'CTC_CML', 'P2P')
                 AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
-                AND CNOTE_NO NOT LIKE 'FW%'  -- Exclude records with CNOTE_NO starting with 'FW'
+                AND CNOTE_NO NOT LIKE 'FW%' -- Exclude records with CNOTE_NO starting with 'FW'
             `, bindParams);
 
 
@@ -1547,8 +1563,9 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 fs.mkdirSync(folderPath);
                 console.log(`Folder ${dateStr} telah dibuat.`);
             }
-            const bar = new ProgressBar(':bar :percent', { total: chunks.length, width: 20 });
+            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
 
+            let no = 1;
             // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
                 const chunk = chunks[i];
@@ -1614,7 +1631,22 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
 
                 const fileName = path.join(folderPath, `DCOReport_${dateStr}_part${i + 1}.xlsx`);
                 await workbook.xlsx.writeFile(fileName);
-                bar.tick();
+
+                console.log(`job id ${jobId}`);
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId
+                `;
+                const updateValues = {
+                    summary_file: i + 1, // Update the summary_file with the number of parts processed
+                    jobId: jobId
+                };
+                await connection.execute(updateQuery, updateValues);
+                await connection.commit();
+
+
+                // bar.tick();
 
                 console.log(`Data berhasil diekspor ke ${fileName}`);
             }
@@ -1685,16 +1717,28 @@ app.get('/getreporttco', async (req, res) => {
             dateStr
         });
 
+        const jsonData = {
+            origin: origin,
+            destination: destination,
+            froms: froms,
+            thrus: thrus,
+            user_id: user_id,
+            estimatedDataCount: estimatedDataCount,
+            estimatedTimeMinutes: estimatedTimeMinutes.toFixed(2),
+            dateStr: dateStr
+        };
+        const clobJson = JSON.stringify(jsonData);
 
+        const count_per_file = Math.ceil(estimatedDataCount / 50000);
         const connection = await oracledb.getConnection(config);
 
         const insertQuery = `
-                INSERT INTO CMS_COST_TRANSIT_V2_LOG (USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS,
-                                                     DOWNLOAD, CREATED_AT, ID_JOB_REDIS, DATACOUNT)
-                VALUES (:user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at,
-                        :id_job, :datacount)
-            `;
-
+            INSERT INTO CMS_COST_TRANSIT_V2_LOG (USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS,
+                                                 DOWNLOAD, CREATED_AT, ID_JOB_REDIS, DATACOUNT, COUNT_PER_FILE,
+                                                 SUMMARY_FILE, TOTAL_FILE, LOG_JSON)
+            VALUES (:user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at,
+                    :id_job, :datacount, :count_per_file, :summary_file, :total_file, :log_json)
+        `;
         // Set values to be inserted
         const insertValues = {
             id_job: job.id,
@@ -1706,11 +1750,12 @@ app.get('/getreporttco', async (req, res) => {
             status: 'Pending',   // Status awal adalah Pending
             download: 0,         // Belum diunduh, set download = 0
             created_at: new Date(), // Timestamp saat data dimasukkan,
-            datacount: estimatedDataCount
-
-
+            datacount: estimatedDataCount,
+            total_file: count_per_file,
+            summary_file: 'Processing',
+            count_per_file: 50000,
+            log_json: clobJson
         };
-
         await connection.execute(insertQuery, insertValues);
         await connection.commit();
         // res.status(200).json({
@@ -1739,6 +1784,9 @@ app.get('/getreporttco', async (req, res) => {
         // Write the log message to the file
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
+
+        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:66:${user_session}::NO::P78_USER:${user_id}`;
+        // res.redirect(redirectUrl);
         // Send the log file for download
         res.download(logFilePath, (err) => {
             if (err) {
@@ -1798,15 +1846,29 @@ app.get('/getreporttci', async (req, res) => {
             dateStr
         });
 
+        const jsonData = {
+            origin: origin,
+            destination: destination,
+            froms: froms,
+            thrus: thrus,
+            user_id: user_id,
+            TM: TM,
+            user_session: user_session,
+            estimatedDataCount: estimatedDataCount,
+            estimatedTimeMinutes: estimatedTimeMinutes.toFixed(2),
+            dateStr: dateStr
+        };
 
+        const clobJson = JSON.stringify(jsonData);
+        const count_per_file = Math.ceil(estimatedDataCount / 50000);
         const connection = await oracledb.getConnection(config);
 
         const insertQuery = `
-            INSERT INTO CMS_COST_TRANSIT_V2_LOG (
-              USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS, DOWNLOAD, CREATED_AT, ID_JOB_REDIS , DATACOUNT
-            ) VALUES (
-               :user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at, :id_job, :datacount
-            )
+            INSERT INTO CMS_COST_TRANSIT_V2_LOG (USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS,
+                                                 DOWNLOAD, CREATED_AT, ID_JOB_REDIS, DATACOUNT, COUNT_PER_FILE,
+                                                 SUMMARY_FILE, TOTAL_FILE, LOG_JSON)
+            VALUES (:user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at,
+                    :id_job, :datacount, :count_per_file, :summary_file, :total_file, :log_json)
         `;
 
         // Set values to be inserted
@@ -1820,9 +1882,11 @@ app.get('/getreporttci', async (req, res) => {
             status: 'Pending',   // Status awal adalah Pending
             download: 0,         // Belum diunduh, set download = 0
             created_at: new Date(), // Timestamp saat data dimasukkan,
-            datacount: estimatedDataCount
-
-
+            datacount: estimatedDataCount,
+            total_file: count_per_file,
+            summary_file: 'Processing',
+            count_per_file: 50000,
+            log_json: clobJson
         };
 
         await connection.execute(insertQuery, insertValues);
@@ -1875,6 +1939,7 @@ app.get('/getreporttci', async (req, res) => {
         res.status(500).send({success: false, message: 'An error occurred while adding the job.'});
     }
 });
+
 app.get('/getreportdci', async (req, res) => {
     try {
         const {origin, destination, froms, thrus, service, user_id} = req.query;
@@ -1922,15 +1987,28 @@ app.get('/getreportdci', async (req, res) => {
             // queue: { name: 'reportDCI'}
         });
 
+        const jsonData = {
+           origin: origin,
+           destination: destination,
+           froms: froms,
+           thrus: thrus,
+           user_id: user_id,
+           service: service,
+            estimatedDataCount: estimatedDataCount,
+            estimatedTimeMinutes: estimatedTimeMinutes,
+            dateStr: dateStr
+        };
+        const clobJson = JSON.stringify(jsonData);
+        const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
         const insertQuery = `
-            INSERT INTO CMS_COST_TRANSIT_V2_LOG (
-              USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS, DOWNLOAD, CREATED_AT, ID_JOB_REDIS , DATACOUNT
-            ) VALUES (
-               :user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at, :id_job, :datacount
-            )
+            INSERT INTO CMS_COST_TRANSIT_V2_LOG (USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS,
+                                                 DOWNLOAD, CREATED_AT, ID_JOB_REDIS, DATACOUNT, COUNT_PER_FILE,
+                                                 SUMMARY_FILE, TOTAL_FILE, LOG_JSON)
+            VALUES (:user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at,
+                    :id_job, :datacount, :count_per_file, :summary_file, :total_file, :log_json)
         `;
 
         // Set values to be inserted
@@ -1944,8 +2022,11 @@ app.get('/getreportdci', async (req, res) => {
             status: 'Pending',   // Status awal adalah Pending
             download: 0,         // Belum diunduh, set download = 0
             created_at: new Date(), // Timestamp saat data dimasukkan,
-            datacount: estimatedDataCount
-
+            datacount: estimatedDataCount,
+            total_file: count_per_file,
+            summary_file: 'Processing',
+            count_per_file: 50000,
+            log_json: clobJson
 
         };
 
@@ -1978,6 +2059,8 @@ app.get('/getreportdci', async (req, res) => {
         // Write the log message to the file
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
+        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:62:${user_session}::NO::P78_USER:${user_id}`;
+        // res.redirect(redirectUrl);
         // Send the log file for download
         res.download(logFilePath, (err) => {
             if (err) {
@@ -2032,17 +2115,30 @@ app.get('/getreportdco', async (req, res) => {
             dateStr
         });
 
+        const jsonData = {
+            origin: origin,
+            destination: destination,
+            froms: froms,
+            thrus: thrus,
+            user_id: user_id,
+            service: service,
+            estimatedDataCount: estimatedDataCount,
+            estimatedTimeMinutes: estimatedTimeMinutes,
+            dateStr: dateStr
+        };
+        const clobJson = JSON.stringify(jsonData);
+
+        const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
         const insertQuery = `
-            INSERT INTO CMS_COST_TRANSIT_V2_LOG (
-                USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS, DOWNLOAD, CREATED_AT, ID_JOB_REDIS , DATACOUNT
-            ) VALUES (
-                         :user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at, :id_job, :datacount
-                     )
+            INSERT INTO CMS_COST_TRANSIT_V2_LOG (USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS,
+                                                 DOWNLOAD, CREATED_AT, ID_JOB_REDIS, DATACOUNT, COUNT_PER_FILE,
+                                                 SUMMARY_FILE, TOTAL_FILE, LOG_JSON)
+            VALUES (:user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at,
+                    :id_job, :datacount, :count_per_file, :summary_file, :total_file, :log_json)
         `;
-
         // Set values to be inserted
         const insertValues = {
             id_job: job.id,
@@ -2054,9 +2150,11 @@ app.get('/getreportdco', async (req, res) => {
             status: 'Pending',   // Status awal adalah Pending
             download: 0,         // Belum diunduh, set download = 0
             created_at: new Date(), // Timestamp saat data dimasukkan,
-            datacount: estimatedDataCount
-
-
+            datacount: estimatedDataCount,
+            total_file: count_per_file,
+            summary_file: 'Processing',
+            count_per_file: 50000,
+            log_json: clobJson
         };
 
         await connection.execute(insertQuery, insertValues);
@@ -2088,6 +2186,8 @@ app.get('/getreportdco', async (req, res) => {
         // Write the log message to the file
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
+        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
+        // res.redirect(redirectUrl);
         // Send the log file for download
         res.download(logFilePath, (err) => {
             if (err) {
@@ -2476,7 +2576,7 @@ app.get('/downloadtco/:jobId', async (req, res) => {
             SELECT NAME_FILE
             FROM CMS_COST_TRANSIT_V2_LOG
             WHERE ID_JOB_REDIS = :jobId
-            AND CATEGORY = :category
+              AND CATEGORY = :category
         `;
 
         const result = await connection.execute(query, {
@@ -2502,7 +2602,8 @@ app.get('/downloadtco/:jobId', async (req, res) => {
             // Update status download ke 1 (unduhan selesai) dan status ke Done
             const updateQuery = `
                 UPDATE CMS_COST_TRANSIT_V2_LOG
-                SET DOWNLOAD = 1, STATUS = 'Download'
+                SET DOWNLOAD = 1,
+                    STATUS   = 'Download'
                 WHERE ID_JOB_REDIS = :jobId
             `;
             await connection.execute(updateQuery, {
@@ -2540,7 +2641,7 @@ app.get('/downloadtci/:jobId', async (req, res) => {
             SELECT NAME_FILE
             FROM CMS_COST_TRANSIT_V2_LOG
             WHERE ID_JOB_REDIS = :jobId
-            AND CATEGORY = :category
+              AND CATEGORY = :category
         `;
 
         const result = await connection.execute(query, {
@@ -2566,7 +2667,8 @@ app.get('/downloadtci/:jobId', async (req, res) => {
             // Update status download ke 1 (unduhan selesai) dan status ke Done
             const updateQuery = `
                 UPDATE CMS_COST_TRANSIT_V2_LOG
-                SET DOWNLOAD = 1, STATUS = 'Download'
+                SET DOWNLOAD = 1,
+                    STATUS   = 'Download'
                 WHERE ID_JOB_REDIS = :jobId
             `;
             await connection.execute(updateQuery, {
@@ -2631,7 +2733,8 @@ app.get('/downloaddci/:jobId', async (req, res) => {
             // Update status download ke 1 (unduhan selesai) dan status ke Done
             const updateQuery = `
                 UPDATE CMS_COST_TRANSIT_V2_LOG
-                SET DOWNLOAD = 1, STATUS = 'Download'
+                SET DOWNLOAD = 1,
+                    STATUS   = 'Download'
                 WHERE ID_JOB_REDIS = :jobId
             `;
             await connection.execute(updateQuery, {
@@ -2669,7 +2772,7 @@ app.get('/downloaddco/:jobId', async (req, res) => {
             SELECT NAME_FILE
             FROM CMS_COST_TRANSIT_V2_LOG
             WHERE ID_JOB_REDIS = :jobId
-            AND CATEGORY = :category
+              AND CATEGORY = :category
         `;
 
         const result = await connection.execute(query, {
@@ -2695,7 +2798,8 @@ app.get('/downloaddco/:jobId', async (req, res) => {
             // Update status download ke 1 (unduhan selesai) dan status ke Done
             const updateQuery = `
                 UPDATE CMS_COST_TRANSIT_V2_LOG
-                SET DOWNLOAD = 1, STATUS = 'Download'
+                SET DOWNLOAD = 1,
+                    STATUS   = 'Download'
                 WHERE ID_JOB_REDIS = :jobId
             `;
             await connection.execute(updateQuery, {
@@ -2734,10 +2838,10 @@ app.get('/progressdci', (req, res) => {
 app.get('/checkPendingJobs', async (req, res) => {
     try {
         const length = await redis.llen('pending_jobs');
-        res.json({ message: `There are ${length} jobs in the pending_jobs queue.` });
+        res.json({message: `There are ${length} jobs in the pending_jobs queue.`});
     } catch (error) {
         console.error('Error checking pending jobs length:', error);
-        res.status(500).json({ error: 'Failed to check pending jobs length' });
+        res.status(500).json({error: 'Failed to check pending jobs length'});
     }
 });
 
@@ -2746,10 +2850,10 @@ app.get('/getPendingJobs', async (req, res) => {
     try {
         const job = await redis.lpop('pending_jobs');  // Ambil job pertama dari antrian pending
         const jobData = jobs.map(job => JSON.parse(job));  // Parse the JSON data for each job
-        res.json({ pendingJobs: jobData });
+        res.json({pendingJobs: jobData});
     } catch (error) {
         console.error('Error retrieving pending jobs:', error);
-        res.status(500).json({ error: 'Failed to retrieve pending jobs' });
+        res.status(500).json({error: 'Failed to retrieve pending jobs'});
     }
 });
 

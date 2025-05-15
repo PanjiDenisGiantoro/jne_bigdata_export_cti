@@ -1,1 +1,8 @@
 2025-05-08 16:39:19 | JobID: 1 | Origin: BDO | Destination: BDO | UserID: YANTI | Session : 9324 | Error: Cannot access 'chunks' before initialization
+2025-05-13 14:28:42 | JobID: 4 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: job is not defined
+2025-05-14 23:23:39 | JobID: 30 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-510: connection to host 10.8.2.48 port 1521 timed out. Request exceeded "transportConnectTimeout" of 20 seconds. (CONNECTION_ID=QCu77JNXymHGC/KtqopURw==)
+2025-05-14 23:24:08 | JobID: 29 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-510: connection to host 10.8.2.48 port 1521 timed out. Request exceeded "transportConnectTimeout" of 20 seconds. (CONNECTION_ID=ZC1eVL9mPQb2hFBwpjdTOw==)
+2025-05-14 23:31:15 | JobID: 32 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: ENOSPC: no space left on device, write
+2025-05-14 23:31:58 | JobID: 33 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-500: connection to the Oracle Database was broken
+NJS-501: connection to host 10.8.2.48 port 1521 terminated unexpectedly. (CONNECTION_ID=KYufWB0otbL9Q1TKsavNmQ==)
+read ECONNRESET
