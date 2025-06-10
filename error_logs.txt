@@ -6,3 +6,10 @@
 2025-05-14 23:31:58 | JobID: 33 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-500: connection to the Oracle Database was broken
 NJS-501: connection to host 10.8.2.48 port 1521 terminated unexpectedly. (CONNECTION_ID=KYufWB0otbL9Q1TKsavNmQ==)
 read ECONNRESET
+2025-05-29 20:33:56 | JobID: 5 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: rresult is not defined
+2025-06-03 23:52:25 | JobID: 3 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: Cannot read properties of undefined (reading 'split')
+2025-06-04 00:00:14 | JobID: 4 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: result is not defined
+2025-06-04 00:10:20 | JobID: 5 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: Cannot read properties of undefined (reading 'split')
+2025-06-04 00:18:22 | JobID: 6 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: Cannot read properties of undefined (reading 'split')
+2025-06-04 00:28:37 | JobID: 7 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: jobId is not defined
+2025-06-04 00:32:15 | JobID: 8 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: jobId is not defined
