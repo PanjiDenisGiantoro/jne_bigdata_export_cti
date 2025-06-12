@@ -40,6 +40,11 @@ const config_jnebill = {
     password: 'JNE98292092B5494083OK',
     connectString: '10.8.2.219:1521/JNEBILL'  // Host, port, dan service name
 };
+const config_jnebilltraining = {
+    user: 'JNEBILL',
+    password: 'JNEBILL',
+    connectString: '10.8.2.19:1522/JNEBILL'  // Host, port, dan service name
+};
 // Membuat Job Queue menggunakan Bull
 const reportQueue = new Bull('reportQueue', {
     redis: {host: '127.0.0.1', port: 6379},
@@ -278,7 +283,7 @@ const processJob = async (job) => {
                     const estimateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET
-                            CREATED_AT = SYSDATE,
+                            START_PROCESS = SYSDATE,
                             DURATION   = :duration,
                             DATACOUNT  = :datacount,
                             TOTAL_FILE = :total_file
@@ -384,6 +389,47 @@ const processJob = async (job) => {
                     // Capture the start time
                     const startTime = Date.now();
 
+                    const estimatedDataCount = await estimateDataCountTCI({
+                        origin,
+                        destination,
+                        froms,
+                        thrus,
+                        user_id,
+                        TM,
+                    });
+
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes = Math.round(
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2
+                    ); // Estimated time in minutes (rounded)
+
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
+
                     // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                     zipFileName = await fetchDataAndExportToExcelTCI({
                         origin,
@@ -473,6 +519,47 @@ const processJob = async (job) => {
                     // Capture the start time
                     const startTime = Date.now();
 
+                    const estimatedDataCount = await estimateDataCountDCI({
+                        origin,
+                        destination,
+                        froms,
+                        thrus,
+                        service,
+                        user_id,
+                    });
+
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes =
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
+
+
+
                     // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                     zipFileName = await fetchDataAndExportToExcelDCI({
                         origin,
@@ -561,6 +648,48 @@ const processJob = async (job) => {
                     // Capture the start time
                     const startTime = Date.now();
 
+
+
+                    const estimatedDataCount = await estimateDataCountDCO({
+                        origin,
+                        destination,
+                        froms,
+                        thrus,
+                        service,
+                        user_id
+                    });
+
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes =
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
+
                     // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                     zipFileName = await fetchDataAndExportToExcelDCO({
                         origin,
@@ -648,6 +777,47 @@ const processJob = async (job) => {
                 try {
                     // Capture the start time
                     const startTime = Date.now();
+
+
+                    // Estimasi jumlah data
+                    const estimatedDataCount = await estimateDataCountCA({
+                        branch,
+                        froms,
+                        thrus,
+                        user_id
+                    });
+
+                    console.log('tes')
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes =
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
                     if (branch === 'BTH000') {
                         zipFileName = await fetchDataAndExportToExcelCABTM({
                             branch,
@@ -750,6 +920,47 @@ const processJob = async (job) => {
                     // Capture the start time
                     const startTime = Date.now();
 
+
+                    // Estimasi jumlah data
+                    const estimatedDataCount = await estimateDataCountRU({
+                        origin_awal,
+                        destination,
+                        services_code,
+                        froms,
+                        thrus,
+                        user_id
+                    });
+
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes =
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
+
                     // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                     zipFileName = await fetchDataAndExportToExcelRU({
                         origin_awal,
@@ -826,7 +1037,7 @@ const processJob = async (job) => {
             });
         }else if (job.queue.name === 'reportQueueDBO') {
             await Sentry.startSpan({name: 'Process Report DBO Job' + job.id, jobId: job.id}, async (span) => {
-                const { branch_id,currency,services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
+                const {  froms, thrus, user_id, dateStr, jobId} = job.data;
                 console.log('Processing job with data:', job.data);
                 let zipFileName = '';
                 let completionTime = '';
@@ -836,11 +1047,48 @@ const processJob = async (job) => {
                 try {
                     // Capture the start time
                     const startTime = Date.now();
+
+
+                    // Default, pakai fungsi estimateDataCountDBO
+                    const estimatedDataCount = await estimateDataCountDBO({
+                        froms,
+                        thrus,
+                        user_id
+                    });
+
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes =
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
+
                     // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                     zipFileName = await fetchDataAndExportToExcelDBO({
-                        branch_id,
-                        currency,
-                        services_code,
                         froms,
                         thrus,
                         user_id,
@@ -912,7 +1160,7 @@ const processJob = async (job) => {
             });
         }else if (job.queue.name === 'reportQueueDBONA') {
             await Sentry.startSpan({name: 'Process Report DBONA Job' + job.id, jobId: job.id}, async (span) => {
-                const { branch_id,currency,services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
+                const {  froms, thrus, user_id, dateStr, jobId} = job.data;
                 console.log('Processing job with data:', job.data);
                 let zipFileName = '';
                 let completionTime = '';
@@ -922,11 +1170,47 @@ const processJob = async (job) => {
                 try {
                     // Capture the start time
                     const startTime = Date.now();
+
+                    const  estimatedDataCount = await estimateDataCountDBONA({
+                        froms,
+                        thrus,
+                        user_id
+                    });
+
+                    console.log('estimasi : '+estimatedDataCount)
+
+                    // Calculate the estimated time based on the benchmark
+                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                    const estimatedTimeMinutes =
+                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                    const today = new Date();
+                    const dateStr = today.toISOString().split("T")[0];
+                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+
+                    const connections = await oracledb.getConnection(config);
+                    const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
+                    `;
+                    const estimateValues = {
+                        duration: estimatedTimeMinutes, // Add the duration
+                        datacount: estimatedDataCount,        // Add the data count
+                        total_file: count_per_file, // Add the total file count
+                        jobId: job.id  // The job ID that we are processing
+                    };
+                    await connections.execute(estimateQuery, estimateValues);
+                    await connections.commit();
+                    console.log(`estimate data : ${job.id}`);
+
+
                     // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                     zipFileName = await fetchDataAndExportToExcelDBONA({
-                        branch_id,
-                        currency,
-                        services_code,
                         froms,
                         thrus,
                         user_id,
@@ -1473,27 +1757,27 @@ async function estimateDataCountRU({origin_awal, destination, services_code, fro
             const bindParams = {};
 
             if (origin_awal !== '0') {
-                whereClause += "AND ORIGIN_AWAL = :origin_awal ";
-                bindParams.origin_awal = origin_awal;
+                whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
+                bindParams.origin_awal = origin_awal + '%';
             }
 
             if (destination !== '0') {
-                whereClause += "AND DESTINATION = :destination ";
-                bindParams.destination = destination;
+                whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
+                bindParams.destination = destination + '%';
             }
 
             if (froms !== '0' && thrus !== '0') {
-                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                whereClause += "AND trunc(RT_CRDATE_RT) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
             if (services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
-                bindParams.services_code = services_code;
+                whereClause += "  AND RT_SERVICES_CODE LIKE :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
+                bindParams.services_code = services_code + '%';
             }
 
-            const sql = `SELECT COUNT(*) AS DATA_COUNT FROM OPS_RETURN_UNPAID_2025 ${whereClause}`;
+            const sql = `SELECT COUNT(*) AS DATA_COUNT FROM V_OPS_RETURN_UNPAID ${whereClause}`;
 
             connection.execute(sql, bindParams, (err, result) => {
                 connection.close();
@@ -1507,7 +1791,7 @@ async function estimateDataCountRU({origin_awal, destination, services_code, fro
     });
 }
 
-async function estimateDataCountDBO({ branch_id, currency, services_code, froms, thrus, user_id }) {
+async function estimateDataCountDBO({ froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -1518,26 +1802,12 @@ async function estimateDataCountDBO({ branch_id, currency, services_code, froms,
             const bindParams = {};
 
             // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
-            }
 
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
-            }
 
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
-            }
-
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
             }
 
             const sql = `SELECT COUNT(*) AS DATA_COUNT FROM CMS_COST_DELIVERY_V2 ${whereClause} and CUST_NA IS NULL AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`;
@@ -1554,7 +1824,7 @@ async function estimateDataCountDBO({ branch_id, currency, services_code, froms,
         });
     });
 }
-async function estimateDataCountDBONA({ branch_id, currency, services_code, froms, thrus, user_id }) {
+async function estimateDataCountDBONA({ froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -1564,28 +1834,12 @@ async function estimateDataCountDBONA({ branch_id, currency, services_code, from
             let whereClause = "WHERE 1=1 ";
             const bindParams = {};
 
-            // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
-            }
-
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
-            }
-
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
-            }
             const sql = `SELECT COUNT(*) AS DATA_COUNT FROM CMS_COST_DELIVERY_V2 ${whereClause} and CUST_NA = 'Y' AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`;
 
             connection.execute(sql, bindParams, (err, result) => {
@@ -1650,7 +1904,7 @@ async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, us
                 TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS CONNOTE_DATE,
                 SERVICES_CODE AS SERVICE_CONNOTE,
                 OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
-                OUTBOND_MANIFEST_DATE,
+                TO_CHAR(OUTBOND_MANIFEST_DATE, 'MM/DD/YYYY')AS OUTBOND_MANIFEST_DATE,
                 ORIGIN,
                 DESTINATION,
                 ZONA_DESTINATION,
@@ -1713,7 +1967,7 @@ async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, us
                 useSharedStrings: true
             });
 
-            const worksheet = workbook.addWorksheet('Data Laporan');
+            const worksheet = workbook.addWorksheet('Data Laporan TCO');
 
             // Header info
             worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
@@ -2128,7 +2382,7 @@ async function fetchDataAndExportToExcelTCI({
                                OUTBOND_MANIFEST_ROUTE                                              AS MANIFEST_ROUTE,
                                TRANSIT_MANIFEST_NO                                                 AS TRANSIT_MANIFEST_NUMBER,
 --                               F_GET_MANIFEST_OM_V4(BAG_NO) as TRANSIT_MANIFEST_NUMBER,
-                               TRANSIT_MANIFEST_DATE            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+                               TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM')            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
                                TRANSIT_MANIFEST_ROUTE,
                                SMU_NUMBER,
                                FLIGHT_NUMBER,
@@ -2145,7 +2399,7 @@ async function fetchDataAndExportToExcelTCI({
                                SUM(OTHER_FEE)                                                      AS OTHER_FEE,
                                SUM(NVL(TRANSIT_FEE, 0) + NVL(HANDLING_FEE, 0) + NVL(OTHER_FEE, 0)) AS TOTAL,
 
-                               SYSDATE                                                             AS DOWNLOAD_DATE
+                               TO_CHAR(SYSDATE  , 'MM/DD/YYYY HH:MI:SS AM')                                                            AS DOWNLOAD_DATE
                         FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                     AND CNOTE_WEIGHT > 0
                         GROUP BY
@@ -2179,7 +2433,7 @@ async function fetchDataAndExportToExcelTCI({
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan TCI');
 
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
@@ -2422,7 +2676,7 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan DCI');
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
                 worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]);
@@ -2638,7 +2892,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan DCO');
 
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
@@ -2881,7 +3135,7 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan CA');
 
                 worksheet.addRow(['Branch:', branch === '0' ? 'ALL' : branch]);
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
@@ -3172,7 +3426,7 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan CABTM');
 
                 worksheet.addRow(['Branch:', branch === '0' ? 'ALL' : branch]);
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
@@ -3335,41 +3589,40 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
             const bindParams = {};
 
             if (origin_awal !== '0') {
-                whereClause += "AND ORIGIN_AWAL = :origin_awal ";
-                bindParams.origin_awal = origin_awal;
+                whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
+                bindParams.origin_awal = origin_awal + '%';
             }
 
             if (destination !== '0') {
-                whereClause += "AND DESTINATION = :destination ";
-                bindParams.destination = destination;
+                whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
+                bindParams.destination = destination + '%';
             }
 
             if (froms !== '0' && thrus !== '0') {
-                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                whereClause += "AND trunc(RT_CRDATE_RT) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
             if (services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
-                bindParams.services_code = services_code;
+                whereClause += "  AND RT_SERVICES_CODE LIKE :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
+                bindParams.services_code = services_code + '%';
             }
 
-            const result = await connection.execute(`select UNPAID_SEQ,
-                                                            CNOTE_NO,
-                                                            ORIGIN_AWAL,
-                                                            CNOTE_DATE,
-                                                            DOC_NO,
-                                                            DOC_DATE,
-                                                            SERVICES_CODE,
-                                                            ORIGIN,
-                                                            DESTINATION,
-                                                            CITY_NAME,
-                                                            QTY,
-                                                            WEIGHT,
-                                                            OPS_RUP_INS_DATE,
-                                                            OPS_RUP_INS_MODE
-                                                     from OPS_RETURN_UNPAID_2025 ${whereClause}`,
+            const result = await connection.execute(`SELECT
+                                                         RT_CNOTE_NO,
+                                                         RT_CRDATE_RT,
+                                                         RT_CNOTE_ASLI,
+                                                         RT_CNOTE_ASLI_ORIGIN,
+                                                         RT_MANIFEST,
+                                                         RT_MANIFEST_DATE,
+                                                         RT_SERVICES_CODE,
+                                                         RT_CNOTE_ORIGIN,
+                                                         RT_CNOTE_DEST,
+                                                         RT_CNOTE_DEST_NAME,
+                                                         RT_CNOTE_QTY,
+                                                         RT_CNOTE_WEIGHT
+                                                     FROM V_OPS_RETURN_UNPAID   ${whereClause}`,
                 bindParams
             );
 
@@ -3398,7 +3651,7 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan RU');
 
                 worksheet.addRow(['Origin:', origin_awal === '0' ? 'ALL' : origin_awal]);
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
@@ -3412,44 +3665,42 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
 
                 const headerRow = worksheet.getRow(11);
                 headerRow.values = [
+
                     "NO",
-                    "UNPAID_SEQ",
-                    "CNOTE_NO",
-                    "ORIGIN_AWAL",
-                    "CNOTE_DATE",
-                    "DOC_NO",
-                    "DOC_DATE",
-                    "SERVICES_CODE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "CITY_NAME",
-                    "QTY",
-                    "WEIGHT",
-                    "OPS_RUP_INS_DATE",
-                    "OPS_RUP_INS_MODE"
+                    "RT_CNOTE_NO",
+                    "RT_CRDATE_RT",
+                    "RT_CNOTE_ASLI",
+                    "RT_CNOTE_ASLI_ORIGIN",
+                    "RT_MANIFEST",
+                    "RT_MANIFEST_DATE",
+                    "RT_SERVICES_CODE",
+                    "RT_CNOTE_ORIGIN",
+                    "RT_CNOTE_DEST",
+                    "RT_CNOTE_DEST_NAME",
+                    "RT_CNOTE_QTY",
+                    "RT_CNOTE_WEIGHT",
                 ];
 
                 const headerRowIndex = 10; // Baris 10
                 let currentRowIndex = headerRowIndex + 1; // Baris 11
                 worksheet.getRow(headerRowIndex).values = [
+
                     "NO",
-                    "UNPAID_SEQ",
-                    "CNOTE_NO",
-                    "ORIGIN_AWAL",
-                    "CNOTE_DATE",
-                    "DOC_NO",
-                    "DOC_DATE",
-                    "SERVICES_CODE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "CITY_NAME",
+                    "RESI RETURN",
+                    "TANGGAL RESI RETURN",
+                    "RESI ASLI",
+                    "ORIGIN RESI ASLI",
+                    "MANIFEST RETURN",
+                    "TANGGAL MANIFEST RETURN",
+                    "SERVICES RETURN",
+                    "ORIGIN RESI RETURN",
+                    "DESTINASI RESI RETURN",
+                    "DESTINATION NAME RETURN",
                     "QTY",
-                    "WEIGHT",
-                    "OPS_RUP_INS_DATE",
-                    "OPS_RUP_INS_MODE"
+                    "WEIGHT"
                 ];
 
-                worksheet.getColumn(13).numFmt = "m/d/yyyy h:mm:ss AM/PM";
+                // worksheet.getColumn(13).numFmt = "m/d/yyyy h:mm:ss AM/PM";
 
                 chunk.forEach((row) => {
                     console.log(row)
@@ -3518,7 +3769,7 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
     });
 }
 
-async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDBO({ froms, thrus, user_id, dateStr,jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -3529,17 +3780,6 @@ async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code
             const bindParams = {};
 
 
-            // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
-            }
-
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
-            }
 
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
@@ -3547,10 +3787,6 @@ async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code
                 bindParams.thrus = thrus;
             }
 
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
-            }
 
             const result = await connection.execute(`
                         SELECT CNOTE_NO,
@@ -3598,11 +3834,8 @@ async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan DBO');
 
-                worksheet.addRow(['Branch:', branch_id === '0' ? 'ALL' : branch_id]);
-                worksheet.addRow(['Currency:', currency === '0' ? 'ALL' : currency]);
-                worksheet.addRow(['Service Code:', services_code === '0' ? 'ALL' : services_code]);
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
                 worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
                 worksheet.addRow(['User Id:', user_id]);
@@ -3708,7 +3941,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code
         }
     });
 }
-async function fetchDataAndExportToExcelDBONA({ branch_id, currency, services_code, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDBONA({  froms, thrus, user_id, dateStr,jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -3719,28 +3952,12 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, currency, services_co
             const bindParams = {};
 
 
-            // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
-            }
-
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
-            }
-
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
-            }
 
             const result = await connection.execute(`
                         SELECT CNOTE_NO,
@@ -3788,11 +4005,8 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, currency, services_co
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan DBONA');
 
-                worksheet.addRow(['Branch:', branch_id === '0' ? 'ALL' : branch_id]);
-                worksheet.addRow(['Currency:', currency === '0' ? 'ALL' : currency]);
-                worksheet.addRow(['Service Code:', services_code === '0' ? 'ALL' : services_code]);
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
                 worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
                 worksheet.addRow(['User Id:', user_id]);
@@ -4085,7 +4299,7 @@ app.get("/getreporttco", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
 
@@ -4137,20 +4351,6 @@ app.get("/getreporttci", async (req, res) => {
         // }
 
         // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountTCI({
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            TM,
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes = Math.round(
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2
-        ); // Estimated time in minutes (rounded)
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
@@ -4175,14 +4375,14 @@ app.get("/getreporttci", async (req, res) => {
             user_id: user_id,
             TM: TM,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
         };
 
         const clobJson = JSON.stringify(jsonData);
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
         const connection = await oracledb.getConnection(config);
 
         const insertProcedure = `
@@ -4207,41 +4407,20 @@ app.get("/getreporttci", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "TCI", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 50000,
-            total_file: count_per_file,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
         // Generate and log the query
-        let generatedQuery = insertProcedure;
 
-        // Replace placeholders with actual values
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4266,8 +4445,8 @@ app.get("/getreporttci", async (req, res) => {
         if (!fs.existsSync(path.dirname(logFilePath))) {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
-        // http://10.8.2.48:8080/ords/f?p=101:78:17076041502424::NO::P78_USER:YASIQIN
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        // https://dash-ctc.jne.co.id:8443/ords/f?p=101:78:17076041502424::NO::P78_USER:YASIQIN
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
@@ -4334,19 +4513,6 @@ app.get("/getreportdci", async (req, res) => {
         //     });
         // }
         // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountDCI({
-            origin,
-            destination,
-            froms,
-            thrus,
-            service,
-            user_id,
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
@@ -4370,15 +4536,15 @@ app.get("/getreportdci", async (req, res) => {
             thrus: thrus,
             user_id: user_id,
             service: service,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
             user_session: user_session,
         };
 
         const clobJson = JSON.stringify(jsonData);
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4404,39 +4570,18 @@ app.get("/getreportdci", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DCI", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 50000,
-            total_file: count_per_file,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
-        let generatedQuery = insertProcedure;
-
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4498,13 +4643,13 @@ app.get("/getreportdci", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
-        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:62:${user_session}::NO::P78_USER:${user_id}`;
+        // const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:62:${user_session}::NO::P78_USER:${user_id}`;
         // res.redirect(redirectUrl);
         // Send the log file for download
         // res.download(logFilePath, (err) => {
@@ -4555,19 +4700,6 @@ app.get("/getreportdco", async (req, res) => {
         }
 
         // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountDCO({
-            origin,
-            destination,
-            froms,
-            thrus,
-            service,
-            user_id
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
@@ -4591,15 +4723,15 @@ app.get("/getreportdco", async (req, res) => {
             user_id: user_id,
             service: service,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4625,41 +4757,19 @@ app.get("/getreportdco", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DCO", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 50000,
-            total_file: count_per_file,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
-        // Generate and log the query
-        let generatedQuery = insertProcedure;
 
-        // Replace placeholders with actual values
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4684,12 +4794,12 @@ app.get("/getreportdco", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
-        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
+        // const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
         // res.redirect(redirectUrl);
         // Send the log file for download
         // res.download(logFilePath, (err) => {
@@ -4733,19 +4843,6 @@ app.get("/getreportca", async (req, res) => {
                 .json({ success: false, message: "Missing required parameters" });
         }
 
-        // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountCA({
-            branch,
-            froms,
-            thrus,
-            user_id
-        });
-
-        console.log('tes')
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
@@ -4765,14 +4862,14 @@ app.get("/getreportca", async (req, res) => {
             thrus: thrus,
             user_id: user_id,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 1);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4798,41 +4895,20 @@ app.get("/getreportca", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "CA", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 0,
-            total_file: count_per_file,
+            total_file: 0,
             branch: "", // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
         // Generate and log the query
-        let generatedQuery = insertProcedure;
 
-        // Replace placeholders with actual values
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4855,12 +4931,12 @@ app.get("/getreportca", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
-        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
+        // const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
         // res.redirect(redirectUrl);
         // Send the log file for download
         // res.download(logFilePath, (err) => {
@@ -4910,20 +4986,6 @@ app.get("/getreportru", async (req, res) => {
                 .json({ success: false, message: "Missing required parameters" });
         }
 
-        // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountRU({
-            origin_awal,
-            destination,
-            services_code,
-            froms,
-            thrus,
-            user_id
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
@@ -4947,15 +5009,15 @@ app.get("/getreportru", async (req, res) => {
             user_id: user_id,
             service: services_code,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4981,14 +5043,14 @@ app.get("/getreportru", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "RU", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 50000,
-            total_file: count_per_file,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
@@ -5018,7 +5080,7 @@ app.get("/getreportru", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
@@ -5031,9 +5093,6 @@ app.get("/getreportru", async (req, res) => {
 app.get("/getreportdbo", async (req, res) => {
     try {
         const {
-            branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5042,12 +5101,9 @@ app.get("/getreportdbo", async (req, res) => {
         } = req.query;
 
         if (
-            !branch_id ||
-            !currency ||
             !froms ||
             !thrus ||
             !user_id ||
-            !services_code ||
             !branch ||
             !user_session
         ) {
@@ -5058,29 +5114,11 @@ app.get("/getreportdbo", async (req, res) => {
 
 
 
-        // Default, pakai fungsi estimateDataCountDBO
-        estimatedDataCount = await estimateDataCountDBO({
-            branch_id,
-            currency,
-            services_code,
-            froms,
-            thrus,
-            user_id
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
-
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
         const job = await reportQueueDBO.add({
-            branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5088,22 +5126,19 @@ app.get("/getreportdbo", async (req, res) => {
         });
 
         const jsonData = {
-            branch_id: branch_id,
-            currency: currency,
-            services_code: services_code,
             froms: froms,
             thrus: thrus,
             user_id: user_id,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch: branch,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -5129,14 +5164,14 @@ app.get("/getreportdbo", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DBO", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 50000,
-            total_file: count_per_file,
+            total_file: 0,
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
@@ -5152,12 +5187,9 @@ app.get("/getreportdbo", async (req, res) => {
         );
         const logMessage = `
             Job ID: ${job.id}
-            branch_id: ${branch_id}
-            currency: ${currency}
             From Date: ${froms}
             To Date: ${thrus}
             User ID: ${user_id}
-            Service: ${services_code}
             Status: Pending
             created_at: ${new Date()}
         `;
@@ -5166,7 +5198,7 @@ app.get("/getreportdbo", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
@@ -5179,9 +5211,6 @@ app.get("/getreportdbo", async (req, res) => {
 app.get("/getreportdbona", async (req, res) => {
     try {
         const {
-            branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5190,12 +5219,9 @@ app.get("/getreportdbona", async (req, res) => {
         } = req.query;
 
         if (
-            !branch_id ||
-            !currency ||
             !froms ||
             !thrus ||
             !user_id ||
-            !services_code ||
             !branch ||
             !user_session
         ) {
@@ -5205,29 +5231,11 @@ app.get("/getreportdbona", async (req, res) => {
         }
 
 
-        estimatedDataCount = await estimateDataCountDBONA({
-            branch_id,
-            currency,
-            services_code,
-            froms,
-            thrus,
-            user_id
-        });
-
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
-
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
         const job = await reportQueueDBONA.add({
-            branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5235,22 +5243,19 @@ app.get("/getreportdbona", async (req, res) => {
         });
 
         const jsonData = {
-            branch_id: branch_id,
-            currency: currency,
-            services_code: services_code,
             froms: froms,
             thrus: thrus,
             user_id: user_id,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch: branch,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -5276,14 +5281,14 @@ app.get("/getreportdbona", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DBONA", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 50000,
-            total_file: count_per_file,
+            total_file: 0,
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
@@ -5299,12 +5304,9 @@ app.get("/getreportdbona", async (req, res) => {
         );
         const logMessage = `
             Job ID: ${job.id}
-            branch_id: ${branch_id}
-            currency: ${currency}
             From Date: ${froms}
             To Date: ${thrus}
             User ID: ${user_id}
-            Service: ${services_code}
             Status: Pending
             created_at: ${new Date()}
         `;
@@ -5313,7 +5315,7 @@ app.get("/getreportdbona", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
@@ -6519,7 +6521,7 @@ app.get("/reruntco/:id", async (req, res) => {
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
         // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
     } catch (err) {
@@ -6673,7 +6675,7 @@ app.get("/reruntci/:id", async (req, res) => {
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
         // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
     } catch (err) {
@@ -6826,7 +6828,7 @@ app.get("/rerundci/:id", async (req, res) => {
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
         // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
     } catch (err) {
@@ -6979,7 +6981,7 @@ app.get("/rerundco/:id", async (req, res) => {
         fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
         // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
     } catch (err) {
@@ -7011,6 +7013,17 @@ app.get("/clean", async (req, res) => {
         await reportQueueDCO.clean(0, 'completed');
         await reportQueueDCO.clean(0, 'failed');
         console.log('Semua job di reportQueueDCO telah dihapus');
+        // Hapus semua job di reportQueueDCO
+        await reportQueueRU.clean(0, 'completed');
+        await reportQueueRU.clean(0, 'failed');
+        console.log('Semua job di reportQueueRU telah dihapus');
+        // Hapus semua job di reportQueueDCO
+        await reportQueueDBO.clean(0, 'completed');
+        await reportQueueDBO.clean(0, 'failed');
+        console.log('Semua job di reportQueueDBO telah dihapus');
+        await reportQueueDBONA.clean(0, 'completed');
+        await reportQueueDBONA.clean(0, 'failed');
+        console.log('Semua job di reportQueueDBONA telah dihapus');
     } catch (error) {
         console.error('Terjadi kesalahan saat menghapus job:', error);
     }
