@@ -2,7 +2,7 @@ module.exports = {
     apps: [
         {
             name: 'Export report',
-            script: 'TCO_report.js',
+            script: 'service_export.js',
             instances: 2,
             exec_mode: 'cluster',
             node_args: '--max-old-space-size=8192 --expose-gc',
