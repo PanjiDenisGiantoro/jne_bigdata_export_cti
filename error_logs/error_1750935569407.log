@@ -1,0 +1,10 @@
+Error Message: EBUSY: resource busy or locked, open 'D:\laragon\www\jne_bigdata_export_cti\file_download\DCIReport_PANJI_2025-06-26.xlsx'
+Stack Trace: Error: EBUSY: resource busy or locked, open 'D:\laragon\www\jne_bigdata_export_cti\file_download\DCIReport_PANJI_2025-06-26.xlsx'
+Input Params: {
+  "branch_id": "BDO",
+  "froms": "01-FEB-2025",
+  "thrus": "01-FEB-2025",
+  "user_id": "PANJI",
+  "dateStr": "2025-06-26",
+  "jobId": "39"
+}

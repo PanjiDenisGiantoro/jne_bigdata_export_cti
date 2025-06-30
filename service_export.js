@@ -2972,7 +2972,7 @@ async function fetchDataAndExportToExcelDCIbackup({ origin, destination, froms, 
     });
 }
 
-async function fetchDataAndExportToExcelDCIfix({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
+async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {

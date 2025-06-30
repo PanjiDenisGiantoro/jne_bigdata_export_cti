@@ -1,0 +1,12 @@
+Error Message: uuidv4(...) is not a function
+Stack Trace: TypeError: uuidv4(...) is not a function
+    at D:\laragon\www\jne_bigdata_export_cti\service_export.js:4723:129
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+Input Params: {
+  "branch_id": "BDO",
+  "froms": "01-FEB-2025",
+  "thrus": "01-FEB-2025",
+  "user_id": "PANJI",
+  "dateStr": "2025-06-27",
+  "jobId": "55"
+}

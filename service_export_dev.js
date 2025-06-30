@@ -22,6 +22,16 @@ const archiver = require('archiver');  // Import archiver untuk zip file
 const fs = require('fs');  // Untuk menulis file ke sistem
 const { pipeline } = require('stream/promises');
 const fsPromises = fs.promises;  // Ini bikin error karena dipakai sebelum inisialisasi
+const rateLimit = require('express-rate-limit');  // Import express-rate-limit
+
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 menit
+    max: 30, // Maksimum 100 permintaan per IP dalam 15 menit
+    message: 'Terlalu banyak permintaan dari IP ini, coba lagi nanti.'
+});
+
+// Gunakan rate limiter di semua endpoint
+app.use(limiter);
 
 // require('dotenv').config();
 // Middleware to parse JSON bodies
@@ -40,49 +50,26 @@ const config_jnebill = {
     password: 'JNE98292092B5494083OK',
     connectString: '10.8.2.219:1521/JNEBILL'  // Host, port, dan service name
 };
+const config_jnebilltraining = {
+    user: 'JNEBILL',
+    password: 'JNEBILL',
+    connectString: '10.8.2.19:1522/JNEBILL'  // Host, port, dan service name
+};
 // Membuat Job Queue menggunakan Bull
 const reportQueue = new Bull('reportQueue', {
     redis: {host: '127.0.0.1', port: 6379},
 
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-
-});
-const reportQueueTCI = new Bull('reportQueueTCI', {
-    redis: {host: '127.0.0.1', port: 6379},
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-
-});
-const reportQueueDCI = new Bull('reportQueueDCI', {
-    redis: {host: '127.0.0.1', port: 6379},
 
     removeOnComplete: true // Job selesai langsung dihapus dari Redis
 
 });
-const reportQueueDCO = new Bull('reportQueueDCO', {
-    redis: {host: '127.0.0.1', port: 6379},
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-
+const reportQueue2 = new Bull('reportQueue2', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
 });
-
-const reportQueueCA = new Bull('reportQueueCA', {
-    redis: {host: '127.0.0.1', port: 6379},
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-
-});
-
-const reportQueueRU = new Bull('reportQueueRU', {
-    redis: {host: '127.0.0.1', port: 6379},
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-
-});
-const reportQueueDBO = new Bull('reportQueueDBO', { //detail biaya operasional
-    redis: {host: '127.0.0.1', port: 6379},
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-});
-const reportQueueDBONA = new Bull('reportQueueDBONA', { //detail biaya operasional
-    redis: {host: '127.0.0.1', port: 6379},
-    removeOnComplete: true // Job selesai langsung dihapus dari Redis
-
+const reportQueue3 = new Bull('reportQueue3', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
 });
 Sentry.init({
     dsn: "https://911497525f2ba3a60f2ea285b4e82520@o4506467821092864.ingest.us.sentry.io/4509234026184704",
@@ -100,13 +87,6 @@ Sentry.init({
     sendDefaultPii: true,
 });
 setQueues([new BullAdapter(reportQueue)]);
-setQueues([new BullAdapter(reportQueueTCI)]);
-setQueues([new BullAdapter(reportQueueDCI)]);
-setQueues([new BullAdapter(reportQueueDCO)]);
-setQueues([new BullAdapter(reportQueueCA)]);
-setQueues([new BullAdapter(reportQueueRU)]);
-setQueues([new BullAdapter(reportQueueDBO)]);
-setQueues([new BullAdapter(reportQueueDBONA)]);
 
 function logErrorToFile(jobId, origin, destination, userId, errorMessage) {
     const logFilePath = path.join(__dirname, 'error_logs.txt');
@@ -172,7 +152,7 @@ function logErrorToFileRU(jobId, origin_awal,destination,services_code, userId, 
         }
     });
 }
-function logErrorToFileDBO(jobId, branch_id,currency,services_code, userId, errorMessage) {
+function logErrorToFileDBO(jobId, branch_id, userId, errorMessage) {
     const logFilePath = path.join(__dirname, 'error_logs.txt');
     const logMessage = `${format(new Date(), 'yyyy-MM-dd HH:mm:ss')} | JobID: ${jobId} | origin: ${branch_id} | Destination: ${currency} | service_code : ${services_code} | UserID: ${userId} | Error: ${errorMessage}\n`;
 
@@ -183,6 +163,16 @@ function logErrorToFileDBO(jobId, branch_id,currency,services_code, userId, erro
     });
 }
 function logErrorToFileDBONA(jobId, branch_id,currency,services_code, userId, errorMessage) {
+    const logFilePath = path.join(__dirname, 'error_logs.txt');
+    const logMessage = `${format(new Date(), 'yyyy-MM-dd HH:mm:ss')} | JobID: ${jobId} | origin: ${branch_id} | Destination: ${currency} | service_code : ${services_code} | UserID: ${userId} | Error: ${errorMessage}\n`;
+
+    fs.appendFile(logFilePath, logMessage, (err) => {
+        if (err) {
+            console.error('Error writing to log file:', err);
+        }
+    });
+}
+function logErrorToFileDBONASUM(jobId, branch_id, userId, errorMessage) {
     const logFilePath = path.join(__dirname, 'error_logs.txt');
     const logMessage = `${format(new Date(), 'yyyy-MM-dd HH:mm:ss')} | JobID: ${jobId} | origin: ${branch_id} | Destination: ${currency} | service_code : ${services_code} | UserID: ${userId} | Error: ${errorMessage}\n`;
 
@@ -224,779 +214,1226 @@ const processJob = async (job) => {
         console.log(`Processing Job ID: ${job.id}`);
 
         // Tentukan fungsi yang digunakan berdasarkan nama queue
-        let fetchDataAndExportToExcelFunc;
-        if (job.queue.name === 'reportQueue') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcel;
-        } else if (job.queue.name === 'reportQueueTCI') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelTCI;
-        } else if (job.queue.name === 'reportQueueDCI') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelDCI;
-        } else if (job.queue.name === 'reportQueueDCO') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelDCO;
-        } else if (job.queue.name === 'reportQueueCA') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelCA;
-        }else if (job.queue.name === 'reportQueueRU') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelRU;
-        }else if (job.queue.name === 'reportQueueDBO') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelDBO;
-        }else if (job.queue.name === 'reportQueueDBONA') {
-            fetchDataAndExportToExcelFunc = fetchDataAndExportToExcelDBONA;
-        }
-        if (!fetchDataAndExportToExcelFunc) {
-            console.error('Unknown queue name:', job.queue.name);
-            return;
-        }
 
-        if (job.queue.name === 'reportQueue') {
-            await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
+        if (job.queue.name === 'reportQueue' || job.queue.name === 'reportQueue2' || job.queue.name === 'reportQueue3') {
+            const { type } = job.data;
+            if(type === 'tco'){
+                await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
 
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                try {
+                    try {
 
-                    const estimatedDataCount = await estimateDataCount({
-                        origin,
-                        destination,
-                        froms,
-                        thrus,
-                        user_id
-                    });
+                        const estimatedDataCount = await estimateDataCount({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id
+                        });
 
-                    const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-                    const estimatedTimeMinutes =
-                        (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
-                    const today = new Date();
-                    const dateStr = today.toISOString().split("T")[0];
-                    const count_per_file = Math.ceil(estimatedDataCount / 50000);
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
-                    const connections = await oracledb.getConnection(config);
-                    const estimateQuery = `
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET
-                            CREATED_AT = SYSDATE,
+                            START_PROCESS = SYSDATE,
                             DURATION   = :duration,
                             DATACOUNT  = :datacount,
                             TOTAL_FILE = :total_file
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
                     `;
-                    const estimateValues = {
-                        duration: estimatedTimeMinutes, // Add the duration
-                        datacount: estimatedDataCount,        // Add the data count
-                        total_file: count_per_file, // Add the total file count
-                        jobId: job.id  // The job ID that we are processing
-                    };
-                    await connections.execute(estimateQuery, estimateValues);
-                    await connections.commit();
-                    console.log(`estimate data : ${job.id}`);
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
 
 
-                    // Capture the start time
-                    const startTime = Date.now();
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcel({
-                        origin,
-                        destination,
-                        froms,
-                        thrus,
-                        user_id,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcel({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        // Clear cache and buffer after the job is completed
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered TCO');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
 
-                        // Log the error details to file
-                        logErrorToFile(job.id, origin, destination, user_id, error.message);
 
-                    });
-                    Sentry.captureException(error);
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        } else if (job.queue.name === 'reportQueueTCI') {
-            await Sentry.startSpan({name: 'Process Report TCI Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, user_id, TM, user_session, dateStr, jobId} = job.data;
-                console.log('Processing job with data:', job.data);
+                            // Log the error details to file
+                            logErrorToFile(job.id, origin, destination, user_id, error.message);
 
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+                        });
+                        Sentry.captureException(error);
 
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'tci') {
 
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcelTCI({
-                        origin,
-                        destination,
-                        froms,
-                        thrus,
-                        user_id,
-                        TM,
-                        user_session,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
+                await Sentry.startSpan({name: 'Process Report TCI Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, user_id, TM, user_session, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        const estimatedDataCount = await estimateDataCountTCI({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            TM,
+                        });
+
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes = Math.round(
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2
+                        ); // Estimated time in minutes (rounded)
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
+                    `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelTCI({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            TM,
+                            user_session,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        // Clear cache and buffer after the job is completed
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered TCI');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
 
-                        // Log the error details to file
-                        logErrorToFileTCI(job.id, origin, destination, user_id, user_session, error.message);
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                    });
-                    Sentry.captureException(error);
+                            // Log the error details to file
+                            logErrorToFileTCI(job.id, origin, destination, user_id, user_session, error.message);
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        } else if (job.queue.name === 'reportQueueDCI') {
-            await Sentry.startSpan({name: 'Process Report DCI Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, user_id, service, dateStr,jobId} = job.data;
-                console.log('Processing job with data:', job.data);
+                        });
+                        Sentry.captureException(error);
 
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'dci'){
+                await Sentry.startSpan({name: 'Process Report DCI Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, user_id, service, dateStr,jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
 
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcelDCI({
-                        origin,
-                        destination,
-                        froms,
-                        thrus,
-                        user_id,
-                        service,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const estimatedDataCount = await estimateDataCountDCI({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            service,
+                            user_id,
+                        });
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                    `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+
+
+
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDCI({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            service,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DCI');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                        // Log the error details to file
-                        logErrorToFileDCI(job.id, origin, destination, user_id, error.message);
+                            // Log the error details to file
+                            logErrorToFileDCI(job.id, origin, destination, user_id, error.message);
 
-                    });
-                    Sentry.captureException(error);
+                        });
+                        Sentry.captureException(error);
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        } else if (job.queue.name === 'reportQueueDCO') {
-            await Sentry.startSpan({name: 'Process Report DCO Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin, destination, froms, thrus, service, user_id, dateStr, jobId} = job.data;
-                console.log('Processing job with data:', job.data);
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
 
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+            }else if(type ==='dco') {
+                await Sentry.startSpan({name: 'Process Report DCO Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, service, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
 
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcelDCO({
-                        origin,
-                        destination,
-                        froms,
-                        thrus,
-                        user_id,
-                        service,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        const estimatedDataCount = await estimateDataCountDCO({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            service,
+                            user_id
+                        });
+
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                    `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDCO({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            service,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                        // Log the error details to file
-                        logErrorToFileDCO(job.id, origin, destination, service, user_id, error.message);
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DCO');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                    });
-                    Sentry.captureException(error);
+                            // Log the error details to file
+                            logErrorToFileDCO(job.id, origin, destination, service, user_id, error.message);
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        }else if (job.queue.name === 'reportQueueCA') {
-            await Sentry.startSpan({name: 'Process Report CA Job' + job.id, jobId: job.id}, async (span) => {
-                const {branch, froms, thrus, user_id, dateStr, jobId} = job.data;
-                console.log('Processing job with data:', job.data);
-
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
-
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
-                    if (branch === 'BTH000') {
-                        zipFileName = await fetchDataAndExportToExcelCABTM({
-                            branch,
-                            froms,
-                            thrus,
-                            user_id,
-                            dateStr,
-                            jobId: job.id
-                        }).then((result) => {
-                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                            return result.zipFileName;
                         });
-                    }else{
-                        zipFileName = await fetchDataAndExportToExcelCA({
-                            branch,
-                            froms,
-                            thrus,
-                            user_id,
-                            dateStr,
-                            jobId: job.id
-                        }).then((result) => {
-                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                            return result.zipFileName;
-                        });
+                        Sentry.captureException(error);
+
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
                     }
+                });
+            }else if(type === 'ca') {
+                await Sentry.startSpan({name: 'Process Report CA Job' + job.id, jobId: job.id}, async (span) => {
+                    const {branch, froms, thrus, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
 
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        // Estimasi jumlah data
+                        const estimatedDataCount = await estimateDataCountCA({
+                            branch,
+                            froms,
+                            thrus,
+                            user_id
+                        });
+
+                        console.log('tes')
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
+                        `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
 
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+                        if (branch === 'BTH000') {
+                            zipFileName = await fetchDataAndExportToExcelCABTM({
+                                branch,
+                                froms,
+                                thrus,
+                                user_id,
+                                dateStr,
+                                jobId: job.id
+                            }).then((result) => {
+                                dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                                return result.zipFileName;
+                            });
+                        }else{
+                            zipFileName = await fetchDataAndExportToExcelCA({
+                                branch,
+                                froms,
+                                thrus,
+                                user_id,
+                                dateStr,
+                                jobId: job.id
+                            }).then((result) => {
+                                dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                                return result.zipFileName;
+                            });
+                        }
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                        // Log the error details to file
-                        logErrorToFileCA(job.id, origin, destination, service, user_id, error.message);
+                            // Log the error details to file
+                            logErrorToFileCA(job.id, origin, destination, service, user_id, error.message);
 
-                    });
-                    Sentry.captureException(error);
+                        });
+                        Sentry.captureException(error);
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        } else if (job.queue.name === 'reportQueueRU') {
-            await Sentry.startSpan({name: 'Process Report RU Job' + job.id, jobId: job.id}, async (span) => {
-                const {origin_awal,destination, services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
-                console.log('Processing job with data:', job.data);
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'ru') {
+                await Sentry.startSpan({name: 'Process Report RU Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin_awal,destination, services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcelRU({
-                        origin_awal,
-                        destination,
-                        services_code,
-                        froms,
-                        thrus,
-                        user_id,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+                        // Estimasi jumlah data
+                        const estimatedDataCount = await estimateDataCountRU({
+                            origin_awal,
+                            destination,
+                            services_code,
+                            froms,
+                            thrus,
+                            user_id
+                        });
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
+                        `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelRU({
+                            origin_awal,
+                            destination,
+                            services_code,
+                            froms,
+                            thrus,
+                            user_id,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered RU');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                        // Log the error details to file
-                        logErrorToFileRU(job.id, origin_awal, destination, services_code, user_id, error.message);
+                            // Log the error details to file
+                            logErrorToFileRU(job.id, origin_awal, destination, services_code, user_id, error.message);
 
-                    });
-                    Sentry.captureException(error);
+                        });
+                        Sentry.captureException(error);
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        }else if (job.queue.name === 'reportQueueDBO') {
-            await Sentry.startSpan({name: 'Process Report DBO Job' + job.id, jobId: job.id}, async (span) => {
-                const { branch_id,currency,services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
-                console.log('Processing job with data:', job.data);
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'dbo') {
+                await Sentry.startSpan({name: 'Process Report DBO Job' + job.id, jobId: job.id}, async (span) => {
+                    const {  branch_id,froms, thrus, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcelDBO({
-                        branch_id,
-                        currency,
-                        services_code,
-                        froms,
-                        thrus,
-                        user_id,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        // Default, pakai fungsi estimateDataCountDBO
+                        const estimatedDataCount = await estimateDataCountDBO({
+                            branch_id,
+                            froms,
+                            thrus,
+                            user_id
+                        });
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
+                    `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDBO({
+                            branch_id,
+                            froms,
+                            thrus,
+                            user_id,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DBO');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                            // Log the error details to file
+                            logErrorToFileDBO(job.id,  branch_id, user_id, error.message);
 
-                        // Log the error details to file
-                        logErrorToFileDBO(job.id,  branch_id, currency,services_code, user_id, error.message);
+                        });
+                        Sentry.captureException(error);
 
-                    });
-                    Sentry.captureException(error);
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
-        }else if (job.queue.name === 'reportQueueDBONA') {
-            await Sentry.startSpan({name: 'Process Report DBONA Job' + job.id, jobId: job.id}, async (span) => {
-                const { branch_id,currency,services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
-                console.log('Processing job with data:', job.data);
-                let zipFileName = '';
-                let completionTime = '';
-                let dataCount = 0;  // Variable to store the number of records processed
-                let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+            }else if(type === 'dbona') {
+                await Sentry.startSpan({name: 'Process Report DBONA Job' + job.id, jobId: job.id}, async (span) => {
+                    const { branch_id, froms, thrus, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
 
-                try {
-                    // Capture the start time
-                    const startTime = Date.now();
-                    // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
-                    zipFileName = await fetchDataAndExportToExcelDBONA({
-                        branch_id,
-                        currency,
-                        services_code,
-                        froms,
-                        thrus,
-                        user_id,
-                        dateStr,
-                        jobId: job.id
-                    }).then((result) => {
-                        dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
-                        return result.zipFileName;
-                    });
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
 
-                    // Capture the completion time after the job is done
-                    const endTime = Date.now();
-                    completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
-                    const formattedDate = moment().format('MM/DD/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+                        const  estimatedDataCount = await estimateDataCountDBONA({
+                            branch_id,
+                            froms,
+                            thrus,
+                            user_id
+                        });
 
-                    // Calculate the elapsed time in minutes
-                    elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        console.log('estimasi : '+estimatedDataCount)
 
-                    const connection = await oracledb.getConnection(config);
-                    const updateQuery = `
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
+                        `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDBONA({
+                            branch_id,
+                            froms,
+                            thrus,
+                            user_id,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
                         UPDATE CMS_COST_TRANSIT_V2_LOG
                         SET DOWNLOAD   = 0,
                             STATUS     = 'Zipped',
                             NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'MM/DD/YYYY HH:MI:SS AM'),
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                             TRANSIT_V2_LOG_FLAG_DELETE = 'N'
                         WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
                     `;
 
-                    // Prepare the update values
-                    const updateValues = {
-                        filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
-                        updated_at: formattedDate,  // Use the formatted date here
-                        jobId: job.id  // The job ID that we are processing
-                    };
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
 
-                    // Execute the update query
-                    await connection.execute(updateQuery, updateValues);
-                    await connection.commit();
-                    console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
-                    await redis.del('currentJobStatus');
-                    console.log(`Job ID: ${jobId} is done`);
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
 
-                    // Cek apakah ada job tertunda yang perlu diproses
-                    await processPendingJobs();
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
 
-                    return {
-                        status: 'done',
-                        zipFileName: zipFileName, // Add the file name to the return value
-                        completionTime: completionTime, // Add the completion time
-                        dataCount: dataCount,  // Number of records processed
-                        elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
-                    };
-                } catch (error) {
-                    console.error('Error processing the job:', error);
-                    await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DBONA');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
-                        // Log the error details to file
-                        logErrorToFileDBONA(job.id,  branch_id, currency,services_code, user_id, error.message);
+                            // Log the error details to file
+                            logErrorToFileDBONA(job.id,  branch_id, currency,services_code, user_id, error.message);
 
-                    });
-                    Sentry.captureException(error);
+                        });
+                        Sentry.captureException(error);
 
-                    return {
-                        status: 'failed',
-                        error: error.message
-                    };
-                }
-            });
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'dbonasum') {
+                await Sentry.startSpan({name: 'Process Report DBONASUM Summary Job' + job.id, jobId: job.id}, async (span) => {
+                    const { branch_id, froms, thrus, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
+
+                        const  estimatedDataCount = await estimateDataCountDBONASUM({
+                            branch_id,
+                            froms,
+                            thrus,
+                            user_id
+                        });
+
+                        console.log('estimasi : '+estimatedDataCount)
+
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET
+                            START_PROCESS = SYSDATE,
+                            DURATION   = :duration,
+                            DATACOUNT  = :datacount,
+                            TOTAL_FILE = :total_file
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
+                    `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDBONASUM({
+                            branch_id,
+                            froms,
+                            thrus,
+                            user_id,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N',
+                            SUMMARY_FILE = '1'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
+                    `;
+
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
+
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
+
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
+
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DBONA');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+
+                            // Log the error details to file
+                            logErrorToFileDBONASUM(job.id,  branch_id, currency,services_code, user_id, error.message);
+
+                        });
+                        Sentry.captureException(error);
+
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }
+        }else{
+            console.log('error queue')
         }
+
     } catch (error) {
         console.error('Error processing job:', error);
         await redis.del('currentJobStatus');  // Lepaskan lock saat error
@@ -1004,57 +1441,29 @@ const processJob = async (job) => {
     }
 };
 
+
+
+
 const processPendingJobs = async () => {
-    const pendingJob = await redis.lpop('pending_jobs');  // Ambil job pertama dari antrian pending
+    const pendingJob = await redis.lpop('pending_jobs');
     console.log('Processing next pending jobs...' + pendingJob);
 
     if (pendingJob) {
         const jobData = JSON.parse(pendingJob);
         console.log('Processing next pending job...' + pendingJob);
-        // Menambahkan job ke dalam queue yang sesuai berdasarkan job.queue.name
-        if (jobData.queue.name === 'reportQueue') {
-            await reportQueue.add(jobData);  // Menambahkan job ke reportQueue
-            console.log('Job added to reportQueue');
-        } else if (jobData.queue.name === 'reportQueueTCI') {
-            await reportQueueTCI.add(jobData);  // Menambahkan job ke reportQueueTCI
-            console.log('Job added to reportQueueTCI');
-        } else if (jobData.queue.name === 'reportQueueDCI') {
-            await reportQueueDCI.add(jobData);  // Menambahkan job ke reportQueueDCI
-            console.log('Job added to reportQueueDCI');
-        } else if (jobData.queue.name === 'reportQueueDCO') {
-            await reportQueueDCO.add(jobData);  // Menambahkan job ke reportQueueDCO
-            console.log('Job added to reportQueueDCO');
-        } else if (jobData.queue.name === 'reportQueueCA') {
-            await reportQueueCA.add(jobData);  // Menambahkan job ke reportQueueDCO
-            console.log('Job added to reportQueueCA');
-        } else if (jobData.queue.name === 'reportQueueRU') {
-            await reportQueueRU.add(jobData);  // Menambahkan job ke reportQueueDCO
-            console.log('Job added to reportQueueRU');
-        } else if (jobData.queue.name === 'reportQueueDBO') {
-            await reportQueueDBO.add(jobData);  // Menambahkan job ke reportQueueDCO
-            console.log('Job added to reportQueueDBO');
-        } else if (jobData.queue.name === 'reportQueueDBONA') {
-            await reportQueueDBO.add(jobData);  // Menambahkan job ke reportQueueDCO
-            console.log('Job added to reportQueueDBONA');
-        }else {
-            console.log(`Unknown queue name: ${jobData.queue.name}`);
-        }
+
+        const queueToAdd = await getQueueToAddJob();
+        await queueToAdd.add(jobData);
+        console.log(`Job added to reportQueue with type: ${jobData.type}`);
     } else {
         console.log('No pending jobs.');
     }
 };
 
-
 // Tentukan bagaimana job akan diproses dalam queue
 reportQueue.process(async (job) => processJob(job));
-reportQueueTCI.process(async (job) => processJob(job));
-reportQueueDCI.process(async (job) => processJob(job));
-reportQueueDCO.process(async (job) => processJob(job));
-reportQueueCA.process(async (job) => processJob(job));
-reportQueueRU.process(async (job) => processJob(job));
-reportQueueDBO.process(async (job) => processJob(job));
-reportQueueDBONA.process(async (job) => processJob(job));
-
+reportQueue2.process(async (job) => processJob(job));
+reportQueue3.process(async (job) => processJob(job));
 // Menggunakan Promise untuk estimasi jumlah data
 async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
     return new Promise((resolve, reject) => {
@@ -1195,13 +1604,13 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
                     const bindParams = {};
 
                     if (origin !== '0') {
-                        whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin, 1, 3)`;
-                        bindParams.origin = origin + '%';
+                        whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
+                        bindParams.origin = origin + '%' ;
                     }
 
                     if (destination !== '0') {
-                        whereClause += ` AND SUBSTR(DESTINATION, 1, 3) LIKE SUBSTR(:destination, 1, 3)`;
-                        bindParams.destination = destination + '%';
+                        whereClause += ` AND SUBSTR(DESTINATION, 1, 3) like :destination`;
+                        bindParams.destination = destination + '%' ;
                     }
 
                     if (froms !== '0' && thrus !== '0') {
@@ -1255,13 +1664,13 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                     const bindParams = {};
 
                     if (origin !== '0') {
-                        whereClause += ` AND SUBSTR(ORIGIN, 1, 3) = :origin`;
-                        bindParams.origin = origin;
+                        whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
+                        bindParams.origin = origin + '%';
                     }
 
                     if (destination !== '0') {
-                        whereClause += ` AND SUBSTR(DESTINATION, 1, 3) = :destination`;
-                        bindParams.destination = destination;
+                        whereClause += ` AND SUBSTR(DESTINATION, 1, 3) like :destination`;
+                        bindParams.destination = destination + '%';
                     }
 
                     if (froms !== '0' && thrus !== '0') {
@@ -1473,27 +1882,27 @@ async function estimateDataCountRU({origin_awal, destination, services_code, fro
             const bindParams = {};
 
             if (origin_awal !== '0') {
-                whereClause += "AND ORIGIN_AWAL = :origin_awal ";
-                bindParams.origin_awal = origin_awal;
+                whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
+                bindParams.origin_awal = origin_awal + '%';
             }
 
             if (destination !== '0') {
-                whereClause += "AND DESTINATION = :destination ";
-                bindParams.destination = destination;
+                whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
+                bindParams.destination = destination + '%';
             }
 
             if (froms !== '0' && thrus !== '0') {
-                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                whereClause += "AND trunc(RT_CRDATE_RT) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
             if (services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
-                bindParams.services_code = services_code;
+                whereClause += "  AND RT_SERVICES_CODE LIKE :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
+                bindParams.services_code = services_code + '%';
             }
 
-            const sql = `SELECT COUNT(*) AS DATA_COUNT FROM OPS_RETURN_UNPAID_2025 ${whereClause}`;
+            const sql = `SELECT COUNT(*) AS DATA_COUNT FROM V_OPS_RETURN_UNPAID ${whereClause}`;
 
             connection.execute(sql, bindParams, (err, result) => {
                 connection.close();
@@ -1507,7 +1916,7 @@ async function estimateDataCountRU({origin_awal, destination, services_code, fro
     });
 }
 
-async function estimateDataCountDBO({ branch_id, currency, services_code, froms, thrus, user_id }) {
+async function estimateDataCountDBO({branch_id, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -1518,26 +1927,17 @@ async function estimateDataCountDBO({ branch_id, currency, services_code, froms,
             const bindParams = {};
 
             // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
+            if (branch_id !== '0') {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
             }
 
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
-            }
 
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
-            }
-
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
             }
 
             const sql = `SELECT COUNT(*) AS DATA_COUNT FROM CMS_COST_DELIVERY_V2 ${whereClause} and CUST_NA IS NULL AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`;
@@ -1554,7 +1954,7 @@ async function estimateDataCountDBO({ branch_id, currency, services_code, froms,
         });
     });
 }
-async function estimateDataCountDBONA({ branch_id, currency, services_code, froms, thrus, user_id }) {
+async function estimateDataCountDBONA({  branch_id, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -1564,16 +1964,11 @@ async function estimateDataCountDBONA({ branch_id, currency, services_code, from
             let whereClause = "WHERE 1=1 ";
             const bindParams = {};
 
-            // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
-            }
 
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
+            if (branch_id !== '0') {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -1582,12 +1977,43 @@ async function estimateDataCountDBONA({ branch_id, currency, services_code, from
                 bindParams.thrus = thrus;
             }
 
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
-            }
             const sql = `SELECT COUNT(*) AS DATA_COUNT FROM CMS_COST_DELIVERY_V2 ${whereClause} and CUST_NA = 'Y' AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`;
 
+            connection.execute(sql, bindParams, (err, result) => {
+                connection.close();
+                if (err) {
+                    reject('Error executing query: ' + err.message);
+                } else {
+                    // result.rows[0][0] adalah count(*) hasil query
+                    resolve(result.rows.length > 0 ? result.rows[0][0] : 0);
+                }
+            });
+        });
+    });
+}
+async function estimateDataCountDBONASUM({  branch_id, froms, thrus, user_id }) {
+    return new Promise((resolve, reject) => {
+        oracledb.getConnection(config, (err, connection) => {
+            if (err) {
+                return reject('Error connecting to database: ' + err.message);
+            }
+
+            let whereClause = "WHERE 1=1 ";
+            const bindParams = {};
+
+
+            if (branch_id !== '0') {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
+            }
+
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
+            const sql = `SELECT COUNT(*) AS DATA_COUNT FROM CMS_COST_DELIVERY_V2 ${whereClause} and CUST_NA = 'Y' AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`;
             connection.execute(sql, bindParams, (err, result) => {
                 connection.close();
                 if (err) {
@@ -1621,7 +2047,7 @@ async function buatZip(folderPath, zipFileName) {
     console.log(`Folder ${folderPath} telah dihapus setelah file ZIP dibuat.`);
 }
 
-async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, user_id , dateStr,jobId}) {
+async function fetchDataAndExportToExcelbackup({ origin, destination, froms, thrus, user_id , dateStr,jobId}) {
     let connection;
     try {
         connection = await oracledb.getConnection(config);
@@ -1647,16 +2073,16 @@ async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, us
         const result = await connection.execute(`
             SELECT
                 '''' || AWB_NO AS CONNOTE_NUMBER,
-                TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS CONNOTE_DATE,
+                TO_CHAR(AWB_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS CONNOTE_DATE,
                 SERVICES_CODE AS SERVICE_CONNOTE,
                 OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
-                OUTBOND_MANIFEST_DATE,
+                TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY')AS OUTBOND_MANIFEST_DATE,
                 ORIGIN,
                 DESTINATION,
                 ZONA_DESTINATION,
                 OUTBOND_MANIFEST_ROUTE AS MANIFEST_ROUTE,
                 TRANSIT_MANIFEST_NO AS TRANSIT_MANIFEST_NUMBER,
-                TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DATE,
+                TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS TRANSIT_MANIFEST_DATE,
                 TRANSIT_MANIFEST_ROUTE,
                 SMU_NUMBER,
                 FLIGHT_NUMBER,
@@ -1685,7 +2111,7 @@ async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, us
         `, bindParams);
 
         // Bagi data ke chunk (50.000 baris)
-        const chunkSize = 50000;
+        const chunkSize = 1000000;
         const chunks = [];
         for (let i = 0; i < result.rows.length; i += chunkSize) {
             chunks.push(result.rows.slice(i, i + chunkSize));
@@ -1713,7 +2139,7 @@ async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, us
                 useSharedStrings: true
             });
 
-            const worksheet = workbook.addWorksheet('Data Laporan');
+            const worksheet = workbook.addWorksheet('Data Laporan TCO');
 
             // Header info
             worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
@@ -1798,10 +2224,11 @@ async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, us
 }
 
 
-async function fetchDataAndExportToExcel_current({origin, destination, froms, thrus, user_id, dateStr, jobId}) {
+async function fetchDataAndExportToExcel({origin, destination, froms, thrus, user_id, dateStr, jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
@@ -1824,17 +2251,19 @@ async function fetchDataAndExportToExcel_current({origin, destination, froms, th
                 bindParams.thrus = thrus;
             }
 
+            console.log('Menjalankan query data...');
 
             const result = await connection.execute( `
                         SELECT
                             '''' || AWB_NO                                                      AS CONNOTE_NUMBER,
-                            TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM')                         AS CONNOTE_DATE,          -- Format tanggal
+                            TO_CHAR(AWB_DATE, 'DD/MM/YYYY')                         AS CONNOTE_DATE,          -- Format tanggal
+                            TO_CHAR(AWB_DATE, 'HH:MI:SS AM')                         AS TIME_CONNOTE_DATE,          -- Format tanggal
 
                             SERVICES_CODE                                                       AS SERVICE_CONNOTE,
 
                             OUTBOND_MANIFEST_NO                                                 AS OUTBOND_MANIFEST_NUMBER,
-
-                            OUTBOND_MANIFEST_DATE,
+                            TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY')                         AS OUTBOND_MANIFEST_DATE,          -- Format tanggal
+                            TO_CHAR(OUTBOND_MANIFEST_DATE, 'HH:MI:SS AM')                         AS TIME_OUTBOND_MANIFEST_DATE,          -- Format tanggal
 
                             ORIGIN,
 
@@ -1847,7 +2276,8 @@ async function fetchDataAndExportToExcel_current({origin, destination, froms, th
                             TRANSIT_MANIFEST_NO                                                 AS TRANSIT_MANIFEST_NUMBER,
 --F_GET_MANIFEST_OM_V4(BAG_NO) as TRANSIT_MANIFEST_NUMBER,
 
-                            TO_CHAR(TRANSIT_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM')            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+                            TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY')            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+                            TO_CHAR(TRANSIT_MANIFEST_DATE, 'HH:MI:SS AM')            AS TIME_TRANSIT_MANIFEST_DATE, -- Format tanggal
 
                             TRANSIT_MANIFEST_ROUTE,                                                                       --BAG_ROUTE 
 
@@ -1870,13 +2300,9 @@ async function fetchDataAndExportToExcel_current({origin, destination, froms, th
                             ACT_WEIGHT                                                          AS WEIGHT_BAG,
 
                             Round(PRORATED_WEIGHT, 3)                                           AS PRORATED_WEIGHT,
-
-                            SUM(TRANSIT_FEE)                                                    AS TRANSIT_FEE,           -- Gunakan SUM 
-
-                            SUM(HANDLING_FEE)                                                   AS HANDLING_FEE,          -- Gunakan SUM 
-
-                            SUM(OTHER_FEE)                                                      AS OTHER_FEE,             -- Gunakan SUM 
-
+                            SUM(TRANSIT_FEE) AS TRANSIT_FEE,
+                            SUM(HANDLING_FEE) AS HANDLING_FEE,
+                            SUM(OTHER_FEE) AS OTHER_FEE,
                             SUM(NVL(TRANSIT_FEE, 0) + NVL(HANDLING_FEE, 0) + NVL(OTHER_FEE, 0)) AS TOTAL,
                             '''' || SYSDATE                                                     AS DOWNLOAD_DATE
                         FROM CMS_COST_TRANSIT_V2 ${whereClause}
@@ -1890,94 +2316,45 @@ async function fetchDataAndExportToExcel_current({origin, destination, froms, th
                 `,
                 bindParams
             );
-
-            let no = 1;  // Initialize counter for 'NO'
-
-            console.log()
-            dataCount = result.rows.length;
-            const chunkSize = 50000;
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
             const chunks = [];
-            for (let i = 0; i < result.rows.length; i += chunkSize) {
-                chunks.push(result.rows.slice(i, i + chunkSize));
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
             }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const timeStr = today.toISOString().split('T')[1].split('.')[0].replace(/:/g, ''); // Time in HHMMSS format
-            const folderPath = path.join(__dirname, `./${uuidv4()}`);
-            // const folderPath = path.join(__dirname, timeStr);
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
-            }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
-
-            // Loop through each chunk, create an Excel file, and save it
+            console.log('Memulai proses ekspor Excel...');
+            let no = 1;
             for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `TCOReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan TCO');
 
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
-
-                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
-                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
-                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
-                worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
-                worksheet.addRow(['User Id:', user_id]);
-                worksheet.addRow(['Jumlah Data:', chunk.length]);
-
-                worksheet.addRow([]);
-
-                const headerRow = worksheet.getRow(10);
-                headerRow.values = [
-                    "NO",
-                    "CONNOTE_NUMBER",
-                    "CONNOTE_DATE",
-                    "SERVICE_CONNOTE",
-                    "OUTBOND_MANIFEST_NUMBER",
-                    "OUTBOND_MANIFEST_DATE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "ZONA_DESTINATION",
-                    "MANIFEST_ROUTE",
-                    "TRANSIT_MANIFEST_NUMBER",
-                    "TRANSIT_MANIFEST_DATE",
-                    "TRANSIT_MANIFEST_ROUTE",
-                    "SMU_NUMBER",
-                    "FLIGHT_NUMBER",
-                    "BRANCH_TRANSPORTER",
-                    "BAG_NUMBER",
-                    "SERVICE_BAG",
-                    "MODA",
-                    "MODA_TYPE",
-                    "WEIGHT_CONNOTE",
-                    "WEIGHT_BAG",
-                    "PRORATED_WEIGHT",
-                    "TRANSIT_FEE",
-                    "HANDLING_FEE",
-                    "OTHER_FEE",
-                    "TOTAL",
-                    "DOWNLOAD_DATE",
-                ];
-// Menambahkan alias ke setiap kolom
-                const headerRowIndex = 10; // Baris 10
-                let currentRowIndex = headerRowIndex + 1; // Baris 11 untuk data
-
-                // 1. Tulis header di baris ke-10
-                worksheet.getRow(headerRowIndex).values = [
+                const headers = [
                     "NO",
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
+                    "TIME CONNOTE DATE",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
+                    "TIME OUTBOND MANIFEST DATE",
                     "ORIGIN",
                     "DESTINATION",
                     "ZONA DESTINATION",
                     "MANIFEST ROUTE",
                     "TRANSIT MANIFEST NUMBER",
                     "TRANSIT MANIFEST DATE",
+                    "TIME TRANSIT MANIFEST DATE",
                     "TRANSIT MANIFEST ROUTE",
                     "SMU NUMBER",
                     "FLIGHT NUMBER",
@@ -1993,87 +2370,60 @@ async function fetchDataAndExportToExcel_current({origin, destination, froms, th
                     "HANDLING FEE",
                     "OTHER FEE",
                     "TOTAL",
-                    "DOWNLOAD DATE",
-                ];
+                    "DOWNLOAD DATE"  ];
 
-                worksheet.getColumn(3).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // CONNOTE DATE
-                worksheet.getColumn(6).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // OUTBOND MANIFEST DATE
-                worksheet.getColumn(12).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // TRANSIT MANIFEST DATE
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
 
-                worksheet.getColumn(23).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(24).numFmt = "#,##0"; // BIAYA TRANSIT
-                worksheet.getColumn(25).numFmt = "#,##0"; // BIAYA PENERUS
-                worksheet.getColumn(26).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
 
-                chunk.forEach((row) => {
-                    row[23] = parseFloat(row[23]) || 0; // kolom 15
-                    row[24] = parseFloat(row[24]) || 0; // kolom 15
-                    row[25] = parseFloat(row[25]) || 0; // kolom 16
-                    row[26] = parseFloat(row[26]) || 0; // kolom 17
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
 
-                    worksheet.getRow(currentRowIndex++).values = [no++, ...row];
-                });
-
-                const fileName = path.join(folderPath, `TCOReport_${dateStr}_${user_id}_part${i + 1}.xlsx`);
-                await workbook.xlsx.writeFile(fileName);
-                console.log(`Data berhasil diekspor ke ${fileName}`);
-                console.log(`job id ${jobId}`);
                 const updateQuery = `
                     UPDATE CMS_COST_TRANSIT_V2_LOG
                     SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId  and CATEGORY = :category
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
                 `;
-                const updateValues = {
-                    summary_file: i + 1, // Update the summary_file with the number of parts processed
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
                     jobId: jobId,
                     category: 'TCO'
-                };
-                await connection.execute(updateQuery, updateValues);
+                });
                 await connection.commit();
-                // bar.tick();
-
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            const zipFileName = path.join(__dirname, 'file_download', `TCOReport_${user_id}_${dateStr}_${timeStr}.zip`);
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `TCOReport_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
-            const archive = archiver('zip', {
-                zlib: {level: 1}
-            });
-
+            const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
-            fs.rmSync(folderPath, {recursive: true, force: true});
-            // fs.rmdirSync(folderPath, {recursive: true, force: true });
-            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
+            resolve({ zipFileName, dataCount: rows.length });
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
-            try {
-                const logDir = path.join(__dirname, 'error_logs');
-                if (!fs.existsSync(logDir)) {
-                    fs.mkdirSync(logDir);
-                }
-                const logFile = path.join(logDir, `error_${Date.now()}.log`);
-                const logContent = `Error Message: ${err.message}\n` +
-                    `Stack Trace: ${err.stack}\n` +
-                    `Input Params: ${JSON.stringify(params, null, 2)}\n`;
-                fs.writeFileSync(logFile, logContent, 'utf-8');
-                console.log(`Parameter input dan error telah ditulis ke ${logFile}`);
-            } catch (writeErr) {
-                console.error('Gagal menulis file log:', writeErr);
-            }
-            reject(err); // Reject if error occurs
+            reject(err);
         } finally {
-            if (connection) {
-                await connection.close();
-            }
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
         }
     });
 }
-
 async function fetchDataAndExportToExcelTCI({
                                                 origin,
                                                 destination,
@@ -2088,6 +2438,7 @@ async function fetchDataAndExportToExcelTCI({
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
@@ -2114,21 +2465,24 @@ async function fetchDataAndExportToExcelTCI({
                 whereClause += ` AND SUBSTR(ORIGIN_TM, 1, 3) = :TM`;
                 bindParams.TM = TM;
             }
-
+            console.log('Menjalankan query data...');
             const result = await connection.execute( `
                         SELECT '''' || AWB_NO                                                      AS CONNOTE_NUMBER,
 --                      AWB_DATE AS CONNOTE_DATE,
-                               TO_CHAR(AWB_DATE, 'MM/DD/YYYY HH:MI:SS AM')                         AS AWB_DATE,              -- Format tanggal
+                               TO_CHAR(AWB_DATE, 'DD/MM/YYYY')                         AS AWB_DATE,              -- Format tanggal
+                               TO_CHAR(AWB_DATE, 'HH:MI:SS AM')                         AS TIME_AWB_DATE,              -- Format tanggal
                                SERVICES_CODE                                                       AS SERVICE_CONNOTE,
                                OUTBOND_MANIFEST_NO                                                 AS OUTBOND_MANIFEST_NUMBER,
-                               TO_CHAR(OUTBOND_MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM')            AS OUTBOND_MANIFEST_DATE, -- Format tanggal
+                               TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY')            AS OUTBOND_MANIFEST_DATE, -- Format tanggal
+                               TO_CHAR(OUTBOND_MANIFEST_DATE, 'HH:MI:SS AM')            AS TIME_OUTBOND_MANIFEST_DATE, -- Format tanggal
                                ORIGIN,
                                DESTINATION,
                                ZONA_DESTINATION,
                                OUTBOND_MANIFEST_ROUTE                                              AS MANIFEST_ROUTE,
                                TRANSIT_MANIFEST_NO                                                 AS TRANSIT_MANIFEST_NUMBER,
 --                               F_GET_MANIFEST_OM_V4(BAG_NO) as TRANSIT_MANIFEST_NUMBER,
-                               TRANSIT_MANIFEST_DATE            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+                               TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY')            AS TRANSIT_MANIFEST_DATE, -- Format tanggal
+                               TO_CHAR(TRANSIT_MANIFEST_DATE, 'HH:MI:SS AM')            AS TIME_TRANSIT_MANIFEST_DATE, -- Format tanggal
                                TRANSIT_MANIFEST_ROUTE,
                                SMU_NUMBER,
                                FLIGHT_NUMBER,
@@ -2140,12 +2494,13 @@ async function fetchDataAndExportToExcelTCI({
                                round(CNOTE_WEIGHT, 3)                                              AS WEIGHT_CONNOTE,
                                round(ACT_WEIGHT, 3)                                                AS WEIGHT_BAG,
                                round(PRORATED_WEIGHT, 3)                                           AS PRORATED_WEIGHT,
-                               SUM(TRANSIT_FEE)                                                    AS TRANSIT_FEE,
-                               SUM(HANDLING_FEE)                                                   AS HANDLING_FEE,
-                               SUM(OTHER_FEE)                                                      AS OTHER_FEE,
+                               SUM(TRANSIT_FEE) AS TRANSIT_FEE,
+                               SUM(HANDLING_FEE) AS HANDLING_FEE,
+                               SUM(OTHER_FEE) AS OTHER_FEE,
                                SUM(NVL(TRANSIT_FEE, 0) + NVL(HANDLING_FEE, 0) + NVL(OTHER_FEE, 0)) AS TOTAL,
-
-                               SYSDATE                                                             AS DOWNLOAD_DATE
+                               
+                               TO_CHAR(SYSDATE  , 'DD/MM/YYYY')                                                            AS DOWNLOAD_DATE,
+                               TO_CHAR(SYSDATE  , 'HH:MI:SS AM')                                                            AS TIME_DOWNLOAD_DATE
                         FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                     AND CNOTE_WEIGHT > 0
                         GROUP BY
@@ -2156,89 +2511,45 @@ async function fetchDataAndExportToExcelTCI({
                 `,
                 bindParams
             );
-            dataCount = result.rows.length;
-            let no = 1;  // Initialize counter for 'NO'
-            const chunkSize = 50000;
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
             const chunks = [];
-            for (let i = 0; i < result.rows.length; i += chunkSize) {
-                chunks.push(result.rows.slice(i, i + chunkSize));
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
             }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const timeStr = today.toISOString().split('T')[1].split('.')[0].replace(/:/g, ''); // Time in HHMMSS format
-            const folderPath = path.join(__dirname, `./${uuidv4()}`);
-            // const folderPath = path.join(__dirname, timeStr);
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
-            }
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
-            // Loop through each chunk, create an Excel file, and save it
+            console.log('Memulai proses ekspor Excel...');
+            let no = 1;
             for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `TCIReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan TCI');
 
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
-
-                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
-                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
-                worksheet.addRow(["Branch:", TM === "0" ? "ALL" : TM]);
-                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
-                worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
-                worksheet.addRow(['User Id:', user_id]);
-                worksheet.addRow(['Jumlah Data:', chunk.length]);
-
-                worksheet.addRow([]);
-
-                const headerRow = worksheet.getRow(11);
-                headerRow.values = [
-                    "NO",
-                    "CONNOTE_NUMBER",
-                    "CONNOTE_DATE",
-                    "SERVICE_CONNOTE",
-                    "OUTBOND_MANIFEST_NUMBER",
-                    "OUTBOND_MANIFEST_DATE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "ZONA_DESTINATION",
-                    "MANIFEST_ROUTE",
-                    "TRANSIT_MANIFEST_NUMBER",
-                    "TRANSIT_MANIFEST_DATE",
-                    "TRANSIT_MANIFEST_ROUTE",
-                    "SMU_NUMBER",
-                    "FLIGHT_NUMBER",
-                    "BRANCH_TRANSPORTER",
-                    "BAG_NUMBER",
-                    "SERVICE_BAG",
-                    "MODA",
-                    "MODA_TYPE",
-                    "WEIGHT_CONNOTE",
-                    "WEIGHT_BAG",
-                    "PRORATED_WEIGHT",
-                    "TRANSIT_FEE",
-                    "HANDLING_FEE",
-                    "OTHER_FEE",
-                    "TOTAL",
-                    "DOWNLOAD_DATE",
-                ];
-                const headerRowIndex = 10; // Baris 10
-                let currentRowIndex = headerRowIndex + 1; // Baris 11 untuk data
-
-                // 1. Tulis header di baris ke-10
-                worksheet.getRow(headerRowIndex).values = [
+                const headers = [
                     "NO",
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
+                    "TIME CONNOTE DATE",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
+                    "TIME OUTBOND MANIFEST DATE",
                     "ORIGIN",
                     "DESTINATION",
                     "ZONA DESTINATION",
                     "MANIFEST ROUTE",
                     "TRANSIT MANIFEST NUMBER",
                     "TRANSIT MANIFEST DATE",
+                    "TIME TRANSIT MANIFEST DATE",
                     "TRANSIT MANIFEST ROUTE",
                     "SMU NUMBER",
                     "FLIGHT NUMBER",
@@ -2255,86 +2566,65 @@ async function fetchDataAndExportToExcelTCI({
                     "OTHER FEE",
                     "TOTAL",
                     "DOWNLOAD DATE",
+                    "TIME DOWNLOAD DATE"
                 ];
 
-                // 2. Format kolom tanggal dan biaya
-                worksheet.getColumn(3).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // CONNOTE DATE
-                worksheet.getColumn(6).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // OUTBOND MANIFEST DATE
-                worksheet.getColumn(12).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // TRANSIT MANIFEST DATE
-                worksheet.getColumn(26).numFmt = "m/d/yyyy h:mm:ss AM/PM"; // DOWNLOAD DATE
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(["Branch:", TM === "0" ? "ALL" : TM]);
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
 
-                // Format kolom biaya (angka dengan ribuan dan desimal)
-                worksheet.getColumn(23).numFmt = "#,##0.00"; // TRANSIT FEE
-                worksheet.getColumn(24).numFmt = "#,##0.00"; // HANDLING FEE
-                worksheet.getColumn(25).numFmt = "#,##0.00"; // OTHER FEE
-                worksheet.getColumn(26).numFmt = "#,##0.00"; // TOTAL
-                // 3. Tambahkan data ke worksheet
-                chunk.forEach((row) => {
-                    worksheet.getRow(currentRowIndex++).values = [no++, ...row];
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
 
-                });
-                const fileName = path.join(folderPath, `TCIReport_${dateStr}_${user_id}_part${i + 1}.xlsx`);
-                await workbook.xlsx.writeFile(fileName);
-                console.log(`Data berhasil diekspor ke ${fileName}`);
-                console.log(`job id ${jobId}`);
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
                 const updateQuery = `
-                    UPDATE CMS_COST_TRANSIT_V2_LOG
-                    SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId  and CATEGORY = :category
-                `;
-                const updateValues = {
-                    summary_file: i + 1, // Update the summary_file with the number of parts processed
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
                     jobId: jobId,
                     category: 'TCI'
-                };
-                await connection.execute(updateQuery, updateValues);
+                });
                 await connection.commit();
-
-                console.log(`Data berhasil diekspor ke ${fileName}`);
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            const zipFileName = path.join(__dirname, 'file_download', `TCIReport_${user_id}_${dateStr}_${timeStr}.zip`);
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `TCIReport_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
-            const archive = archiver('zip', {
-                zlib: {level: 1}
-            });
-
+            const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
-            fs.rmSync(folderPath, {recursive: true, force: true});
-            // fs.rmdirSync(folderPath, {recursive: true});
-            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
+            resolve({ zipFileName, dataCount: rows.length });
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
-            try {
-                const logDir = path.join(__dirname, 'error_logs');
-                if (!fs.existsSync(logDir)) {
-                    fs.mkdirSync(logDir);
-                }
-                const logFile = path.join(logDir, `error_${Date.now()}.log`);
-                const logContent = `Error Message: ${err.message}\n` +
-                    `Stack Trace: ${err.stack}\n` +
-                    `Input Params: ${JSON.stringify(params, null, 2)}\n`;
-                fs.writeFileSync(logFile, logContent, 'utf-8');
-                console.log(`Parameter input dan error telah ditulis ke ${logFile}`);
-            } catch (writeErr) {
-                console.error('Gagal menulis file log:', writeErr);
-            }
-            reject(err); // Reject if error occurs
+            reject(err);
         } finally {
-            if (connection) {
-                await connection.close();
-            }
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
         }
     });
 }
 
 
-async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, service, user_id, dateStr, jobId}) {
+async function fetchDataAndExportToExcelDCIfix({origin, destination, froms, thrus, service, user_id, dateStr, jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -2345,14 +2635,13 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
             const bindParams = {};
 
             if (origin !== '0') {
-                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin , 1, 3)`;
-                bindParams.origin = origin + '%';
+                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
+                bindParams.origin = origin +'%';
             }
-
             if (destination !== '0') {
 
-                whereClause += ` AND  SUBSTR(DESTINATION,1,3) LIKE SUBSTR(:destination,1,3) `;
-                bindParams.destination = destination + '%';
+                whereClause += ` AND  SUBSTR(DESTINATION,1,3) like :destination `;
+                bindParams.destination = destination +'%' ;
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -2368,7 +2657,8 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
 
             const result = await connection.execute(`
                         SELECT '''' || CNOTE_NO                                 AS CNOTE_NO,
-                               TO_CHAR(CNOTE_DATE, 'MM/DD/YYYY HH:MI:SS AM')    AS CNOTE_DATE,     -- Format tanggal
+                               TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY')    AS CNOTE_DATE,     -- Format tanggal
+                               TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM')    AS TIME_CNOTE_DATE,     -- Format tanggal
                                ORIGIN,
                                DESTINATION,
                                ZONA_DESTINATION,
@@ -2383,7 +2673,7 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
                                nvl(AMOUNT, 0)                                      AMOUNT,
                                MANIFEST_NO,
                                --TO_CHAR(MANIFEST_DATE,'MM-DD-RRRR') MANIFEST_DATE, 
-                               TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY') AS MANIFEST_DATE,  -- Format tanggal
+                               TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,  -- Format tanggal
                                NVL(DELIVERY, 0)                                    DELIVERY,
                                NVL(DELIVERY_SPS, 0)                                DELIVERY_SPS,
                                NVL(TRANSIT, 0)                                  AS BIAYA_TRANSIT,
@@ -2400,7 +2690,7 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
             );
             dataCount = result.rows.length;
             let no = 1;
-            const chunkSize = 50000;
+            const chunkSize = 1000000;
             const chunks = [];
             for (let i = 0; i < result.rows.length; i += chunkSize) {
                 chunks.push(result.rows.slice(i, i + chunkSize));
@@ -2413,16 +2703,16 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
             // const folderPath = path.join(__dirname, timeStr);
             if (!fs.existsSync(folderPath)) {
                 fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
+                console.log(`Folder ${folderPath} telah dibuat.`);
             }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            // const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
 
             // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan DCI');
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
                 worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]);
@@ -2478,12 +2768,12 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
                 ];
 
 
-                worksheet.getColumn(10).numFmt = "#,##0.00"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(13).numFmt = "#,##0.00"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(14).numFmt = "#,##0.00"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(15).numFmt = "#,##0.00"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(16).numFmt = "#,##0.00"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(17).numFmt = "#,##0.00"; // BIAYA PENERUS NEXT KG
+                worksheet.getColumn(10).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
+                worksheet.getColumn(13).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
+                worksheet.getColumn(14).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
+                worksheet.getColumn(15).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
+                worksheet.getColumn(16).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
+                worksheet.getColumn(17).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
 
                 chunk.forEach((row) => {
                     worksheet.getRow(currentRowIndex++).values = [no++, ...row];
@@ -2549,8 +2839,7 @@ async function fetchDataAndExportToExcelDCI({origin, destination, froms, thrus, 
         }
     });
 }
-
-async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, service, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDCIbackup({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -2561,13 +2850,296 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             const bindParams = {};
 
             if (origin !== '0') {
-                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) = :origin`;
-                bindParams.origin = origin;
+                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin , 1, 3)`;
+                bindParams.origin = origin + '%';
             }
 
             if (destination !== '0') {
-                whereClause += ` AND SUBSTR(DESTINATION, 1, 3) = :destination`;
-                bindParams.destination = destination;
+                whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE SUBSTR(:destination,1,3)`;
+                bindParams.destination = destination + '%';
+            }
+
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
+
+            if (service !== '0') {
+                whereClause += ` AND SERVICES_CODE LIKE :service`;
+                bindParams.service = service + '%';
+            }
+
+            const result = await connection.execute(`
+        SELECT '''' || CNOTE_NO AS CNOTE_NO,
+               TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS CNOTE_DATE,
+               ORIGIN,
+               DESTINATION,
+               ZONA_DESTINATION,
+               SERVICES_CODE,
+               NVL(QTY, 0) QTY,
+               CASE WHEN WEIGHT = 0 THEN 0
+                    WHEN WEIGHT < 1 THEN 1
+                    WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                    ELSE FLOOR(WEIGHT) END WEIGHT,
+               NVL(AMOUNT, 0) AMOUNT,
+               MANIFEST_NO,
+               TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
+               NVL(DELIVERY, 0) DELIVERY,
+               NVL(DELIVERY_SPS, 0) DELIVERY_SPS,
+               NVL(TRANSIT, 0) BIAYA_TRANSIT,
+               NVL(LINEHAUL_FIRST, 0) LINEHAUL_FIRST,
+               NVL(LINEHAUL_NEXT, 0) LINEHAUL_NEXT
+        FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
+        AND CNOTE_NO NOT LIKE 'RT%'
+        AND CNOTE_NO NOT LIKE 'FW%'
+      `, bindParams);
+
+            const rows = result.rows;
+            const chunkSize = 1000000;
+            const chunks = [];
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
+            }
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
+
+            let no = 1;
+            for (let i = 0; i < chunks.length; i++) {
+                const fileName = path.join(folderPath, `DCIReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DCI');
+
+                const headers = [
+                    "NO", "CNOTE NO", "CNOTE DATE", "ORIGIN", "DESTINATION", "ZONA DESTINATION",
+                    "SERVICES CODE", "QTY", "WEIGHT", "AMOUNT", "MANIFEST NO", "MANIFEST DATE",
+                    "DELIVERY", "DELIVERY SPS", "BIAYA TRANSIT", "BIAYA PENERUS", "BIAYA PENERUS NEXT KG"
+                ];
+
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
+
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
+
+                await workbook.commit();
+
+                const updateQuery = `
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DCI'
+                });
+                await connection.commit();
+
+                console.log(`Data berhasil diekspor ke ${fileName}`);
+            }
+
+            const zipFileName = path.join(__dirname, 'file_download', `DCIReport_${user_id}_${dateString}_${timeString}.zip`);
+            const output = fs.createWriteStream(zipFileName);
+            const archive = archiver('zip', { zlib: { level: 1 } });
+            archive.pipe(output);
+            archive.directory(folderPath, false);
+            await archive.finalize();
+
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
+
+            resolve({ zipFileName, dataCount: rows.length });
+        } catch (err) {
+            console.error('Terjadi kesalahan:', err);
+            reject(err);
+        } finally {
+            if (connection) await connection.close();
+        }
+    });
+}
+
+async function fetchDataAndExportToExcelDCIfix({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            console.log('Menghubungkan ke database...');
+            connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
+
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
+
+            if (origin !== '0') {
+                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin , 1, 3)`;
+                bindParams.origin = origin + '%';
+            }
+
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE SUBSTR(:destination,1,3)`;
+                bindParams.destination = destination + '%';
+            }
+
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
+
+            if (service !== '0') {
+                whereClause += ` AND SERVICES_CODE = :service`;
+                bindParams.service = service ;
+            }
+
+            console.log('Menjalankan query data...');
+            const result = await connection.execute(`
+        SELECT '''' || CNOTE_NO AS CNOTE_NO,
+               TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY') AS CNOTE_DATE,
+               TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM') AS TIME_CNOTE_DATE,
+               ORIGIN,
+               DESTINATION,
+               ZONA_DESTINATION,
+               SERVICES_CODE,
+               NVL(QTY, 0) AS QTY,
+               TO_CHAR(
+                       CASE
+                           WHEN WEIGHT = 0 THEN 0
+                           WHEN WEIGHT < 1 THEN 1
+                           WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                           ELSE FLOOR(WEIGHT)
+                           END,
+                       '999G999G999',
+                       'NLS_NUMERIC_CHARACTERS = ''.,'''
+               ) AS WEIGHT,
+               NVL(AMOUNT, 0) AS AMOUNT,
+               MANIFEST_NO,
+               TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
+               TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE,
+               NVL(DELIVERY, 0) AS DELIVERY,
+               NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
+               NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
+               NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
+               NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
+        FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
+        AND CNOTE_NO NOT LIKE 'RT%'
+        AND CNOTE_NO NOT LIKE 'FW%'
+      `, bindParams);
+
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
+            const chunks = [];
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
+            }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
+
+            console.log('Memulai proses ekspor Excel...');
+            let no = 1;
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `DCIReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DCI');
+
+                const headers = [
+                    "NO", "CNOTE NO", "CNOTE DATE", "TIME CNOTE DATE", "ORIGIN", "DESTINATION", "ZONA DESTINATION",
+                    "SERVICES CODE", "QTY", "WEIGHT", "AMOUNT", "MANIFEST NO", "MANIFEST DATE", "TIME MANIFEST DATE",
+                    "DELIVERY", "DELIVERY SPS", "BIAYA TRANSIT", "BIAYA PENERUS", "BIAYA PENERUS NEXT KG"
+                ];
+
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
+
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
+
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
+                const updateQuery = `
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DCI'
+                });
+                await connection.commit();
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
+            }
+
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `DCIReport_${user_id}_${dateString}_${timeString}.zip`);
+            const output = fs.createWriteStream(zipFileName);
+            const archive = archiver('zip', { zlib: { level: 1 } });
+            archive.pipe(output);
+            archive.directory(folderPath, false);
+            await archive.finalize();
+
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
+
+            resolve({ zipFileName, dataCount: rows.length });
+        } catch (err) {
+            console.error('Terjadi kesalahan:', err);
+            reject(err);
+        } finally {
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
+        }
+    });
+}
+async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, service, user_id, dateStr,jobId}) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            console.log('Menghubungkan ke database...');
+            connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
+
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
+
+            if (origin !== '0') {
+                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE :origin`;
+                bindParams.origin = origin + '%';
+            }
+
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE :destination`;
+                bindParams.destination = destination + '%';
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -2581,10 +3153,11 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 bindParams.service = service;
             }
 
-
+            console.log('Menjalankan query data...');
             const result = await connection.execute(`SELECT
                                                          '''' || CNOTE_NO                                 AS CNOTE_NO,
-                                                         TO_CHAR(CNOTE_DATE, 'MM/DD/YYYY HH:MI:SS AM')    AS CNOTE_DATE,
+                                                         TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY')    AS CNOTE_DATE,
+                                                         TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM')    AS TIME_CNOTE_DATE,
                                                          ORIGIN,
                                                          DESTINATION,
                                                          NVL(QTY, 0)                                      AS QTY,
@@ -2596,15 +3169,15 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                                                              WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
                                                              ELSE FLOOR(WEIGHT)
                                                              END                                             WEIGHT,
-                                                         NVL(AMOUNT, 0)                                   AS AMOUNT,
+                                                         NVL(AMOUNT, 0) AS AMOUNT,
                                                          MANIFEST_NO,
-                                                         TO_CHAR(MANIFEST_DATE, 'MM/DD/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
-
-                                                         NVL(DELIVERY, 0)                                 AS DELIVERY,
-                                                         NVL(DELIVERY_SPS, 0)                             AS DELIVERY_SPS,
-                                                         NVL(TRANSIT, 0)                                  AS BIAYA_TRANSIT,
-                                                         NVL(LINEHAUL_FIRST, 0)                           AS LINEHAUL_FIRST,
-                                                         NVL(LINEHAUL_NEXT, 0)                            AS LINEHAUL_NEXT
+                                                         TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
+                                                         TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE, -- Format tanggal
+                                                         NVL(DELIVERY, 0) AS DELIVERY,
+                                                         NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
+                                                         NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
+                                                         NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
+                                                         NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
                                                      FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN, 1, 3) <> SUBSTR(DESTINATION, 1, 3)
                 AND SERVICES_CODE NOT IN ('CML', 'CTC_CML', 'P2P')
                 AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
@@ -2612,71 +3185,34 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 `,
                 bindParams
             );
-
-            dataCount = result.rows.length;
-
-            const chunkSize = 50000;
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
             const chunks = [];
-            for (let i = 0; i < result.rows.length; i += chunkSize) {
-                chunks.push(result.rows.slice(i, i + chunkSize));
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
             }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const timeStr = today.toISOString().split('T')[1].split('.')[0].replace(/:/g, ''); // Time in HHMMSS format
-            const folderPath = path.join(__dirname, `./${uuidv4()}`);
-            // const folderPath = path.join(__dirname, timeStr);
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
-            }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
+            console.log('Memulai proses ekspor Excel...');
             let no = 1;
-            // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `DCOReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DCO');
 
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
-
-                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]);
-                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
-                worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]);
-                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
-                worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
-                worksheet.addRow(['User Id:', user_id]);
-                worksheet.addRow(['Jumlah Data:', chunk.length]);
-
-                worksheet.addRow([]);
-
-                const headerRow = worksheet.getRow(11);
-                headerRow.values = [
-                    "NO",
-                    "CNOTE_NO",
-                    "CNOTE_DATE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "QTY",
-                    "ZONA_DESTINATION",
-                    "SERVICES_CODE",
-                    "WEIGHT",
-                    "AMOUNT",
-                    "MANIFEST_NO",
-                    "MANIFEST_DATE",
-                    "DELIVERY",
-                    "DELIVERY_SPS",
-                    "BIAYA_TRANSIT",
-                    "LINEHAUL_FIRST",
-                    "LINEHAUL_NEXT",
-                ];
-
-                const headerRowIndex = 10; // Baris 10
-                let currentRowIndex = headerRowIndex + 1; // Baris 11
-                worksheet.getRow(headerRowIndex).values = [
+                const headers = [
                     "NO",
                     "CONNOTE NO",
-                    "CONNOTE DATE TIME",
+                    "CONNOTE DATE ",
+                    "TIME CONNOTE DATE ",
                     "ORIGIN",
                     "DESTINATION",
                     "COLLY",
@@ -2686,84 +3222,64 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                     "AMOUNT",
                     "MANIFEST NO",
                     "MANIFEST DATE",
+                    "TIME MANIFEST DATE",
                     "DELIVERY",
                     "DELIVERY SPS",
                     "BIAYA TRANSIT",
                     "PENERUS",
-                    "BIAYA PENERUS NEXT KG",
+                    "BIAYA PENERUS NEXT KG"
                 ];
 
-                worksheet.getColumn(8).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(10).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(12).numFmt = "#,##0"; // BIAYA PENERUS NEXT KG
-                worksheet.getColumn(13).numFmt = "#,##0"; // BIAYA TRANSIT
-                worksheet.getColumn(14).numFmt = "#,##0"; // BIAYA TRANSIT
-                worksheet.getColumn(15).numFmt = "#,##0"; // BIAYA PENERUS
-                worksheet.getColumn(16).numFmt = "#,##0"; // BIAYA PENERUS
-                worksheet.getColumn(17).numFmt = "#,##0"; // BIAYA PENERUS
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
 
-                chunk.forEach((row) => {
-                    worksheet.getRow(currentRowIndex++).values = [no++, ...row];
-                });
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
 
-                const fileName = path.join(folderPath, `DCOReport_${dateStr}_${user_id}_part${i + 1}.xlsx`);
-                await workbook.xlsx.writeFile(fileName);
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
 
-                console.log(`job id ${jobId}`);
                 const updateQuery = `
-                    UPDATE CMS_COST_TRANSIT_V2_LOG
-                    SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId
-                `;
-                const updateValues = {
-                    summary_file: i + 1, // Update the summary_file with the number of parts processed
-                    jobId: jobId
-                };
-                await connection.execute(updateQuery, updateValues);
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DCO'
+                });
                 await connection.commit();
-
-
-                // bar.tick();
-
-                console.log(`Data berhasil diekspor ke ${fileName}`);
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            const zipFileName = path.join(__dirname, 'file_download', `DCOReport_${user_id}_${dateStr}_${timeStr}.zip`);
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `DCOReport_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
-            const archive = archiver('zip', {
-                zlib: {level: 1}
-            });
-
+            const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
-            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
-
+            resolve({ zipFileName, dataCount: rows.length });
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
-            try {
-                const logDir = path.join(__dirname, 'error_logs');
-                if (!fs.existsSync(logDir)) {
-                    fs.mkdirSync(logDir);
-                }
-                const logFile = path.join(logDir, `error_${Date.now()}.log`);
-                const logContent = `Error Message: ${err.message}\n` +
-                    `Stack Trace: ${err.stack}\n` +
-                    `Input Params: ${JSON.stringify(params, null, 2)}\n`;
-                fs.writeFileSync(logFile, logContent, 'utf-8');
-                console.log(`Parameter input dan error telah ditulis ke ${logFile}`);
-            } catch (writeErr) {
-                console.error('Gagal menulis file log:', writeErr);
-            }
-            reject(err); // Reject if error occurs
+            reject(err);
         } finally {
-            if (connection) {
-                await connection.close();
-            }
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
         }
     });
 }
@@ -2858,7 +3374,7 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
 
             dataCount = result.rows.length;
 
-            const chunkSize = 50000;
+            const chunkSize = 1000000;
             const chunks = [];
             for (let i = 0; i < result.rows.length; i += chunkSize) {
                 chunks.push(result.rows.slice(i, i + chunkSize));
@@ -2881,7 +3397,7 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan CA');
 
                 worksheet.addRow(['Branch:', branch === '0' ? 'ALL' : branch]);
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
@@ -3149,7 +3665,7 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
             `, bindParams);
             dataCount = result.rows.length;
 
-            const chunkSize = 50000;
+            const chunkSize = 1000000;
             const chunks = [];
             for (let i = 0; i < result.rows.length; i += chunkSize) {
                 chunks.push(result.rows.slice(i, i + chunkSize));
@@ -3172,7 +3688,7 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
                 const chunk = chunks[i];
 
                 const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
+                const worksheet = workbook.addWorksheet('Data Laporan CABTM');
 
                 worksheet.addRow(['Branch:', branch === '0' ? 'ALL' : branch]);
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
@@ -3328,6 +3844,7 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
@@ -3335,211 +3852,155 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
             const bindParams = {};
 
             if (origin_awal !== '0') {
-                whereClause += "AND ORIGIN_AWAL = :origin_awal ";
-                bindParams.origin_awal = origin_awal;
+                whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
+                bindParams.origin_awal = origin_awal + '%';
             }
 
             if (destination !== '0') {
-                whereClause += "AND DESTINATION = :destination ";
-                bindParams.destination = destination;
+                whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
+                bindParams.destination = destination + '%';
             }
 
             if (froms !== '0' && thrus !== '0') {
-                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                whereClause += "AND trunc(RT_CRDATE_RT) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
             if (services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
-                bindParams.services_code = services_code;
+                whereClause += "  AND RT_SERVICES_CODE LIKE :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
+                bindParams.services_code = services_code + '%';
             }
 
-            const result = await connection.execute(`select UNPAID_SEQ,
-                                                            CNOTE_NO,
-                                                            ORIGIN_AWAL,
-                                                            CNOTE_DATE,
-                                                            DOC_NO,
-                                                            DOC_DATE,
-                                                            SERVICES_CODE,
-                                                            ORIGIN,
-                                                            DESTINATION,
-                                                            CITY_NAME,
-                                                            QTY,
-                                                            WEIGHT,
-                                                            OPS_RUP_INS_DATE,
-                                                            OPS_RUP_INS_MODE
-                                                     from OPS_RETURN_UNPAID_2025 ${whereClause}`,
+            console.log('Menjalankan query data...');
+            const result = await connection.execute(`SELECT
+                                                         RT_CNOTE_NO,
+                                                         TO_CHAR(RT_CRDATE_RT, 'DD/MM/YYYY HH:MI:SS AM')    AS RT_CRDATE_RT,
+                                                         TO_CHAR(RT_CRDATE_RT, 'HH:MI:SS AM')    AS TIME_RT_CRDATE_RT,
+                                                         RT_CNOTE_ASLI,
+                                                         RT_CNOTE_ASLI_ORIGIN,
+                                                         RT_MANIFEST,
+                                                         TO_CHAR(RT_MANIFEST_DATE, 'DD/MM/YYYY HH:MI:SS AM')    AS RT_MANIFEST_DATE,
+                                                         TO_CHAR(RT_MANIFEST_DATE, 'HH:MI:SS AM')    AS TIME_RT_MANIFEST_DATE,
+                                                         RT_SERVICES_CODE,
+                                                         RT_CNOTE_ORIGIN,
+                                                         RT_CNOTE_DEST,
+                                                         RT_CNOTE_DEST_NAME,
+                                                         RT_CNOTE_QTY,
+                                                         RT_CNOTE_WEIGHT
+                                                     FROM V_OPS_RETURN_UNPAID   ${whereClause}`,
                 bindParams
             );
 
-            dataCount = result.rows.length;
-
-            const chunkSize = 50000;
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
             const chunks = [];
-            for (let i = 0; i < result.rows.length; i += chunkSize) {
-                chunks.push(result.rows.slice(i, i + chunkSize));
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
             }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const timeStr = today.toISOString().split('T')[1].split('.')[0].replace(/:/g, ''); // Time in HHMMSS format
-            const folderPath = path.join(__dirname, `./${uuidv4()}`);
-            // const folderPath = path.join(__dirname, timeStr);
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
-            }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
+            console.log('Memulai proses ekspor Excel...');
             let no = 1;
-            // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `RUReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan RU');
 
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
-
-                worksheet.addRow(['Origin:', origin_awal === '0' ? 'ALL' : origin_awal]);
-                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]);
-                worksheet.addRow(['Service Code:', services_code === '0' ? 'ALL' : services_code]);
-                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
-                worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
-                worksheet.addRow(['User Id:', user_id]);
-                worksheet.addRow(['Jumlah Data:', chunk.length]);
-
-                worksheet.addRow([]);
-
-                const headerRow = worksheet.getRow(11);
-                headerRow.values = [
+                const headers = [
                     "NO",
-                    "UNPAID_SEQ",
-                    "CNOTE_NO",
-                    "ORIGIN_AWAL",
-                    "CNOTE_DATE",
-                    "DOC_NO",
-                    "DOC_DATE",
-                    "SERVICES_CODE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "CITY_NAME",
+                    "RESI RETURN",
+                    "TANGGAL RESI RETURN",
+                    "TIME RESI RETURN",
+                    "RESI ASLI",
+                    "ORIGIN RESI ASLI",
+                    "MANIFEST RETURN",
+                    "TANGGAL MANIFEST RETURN",
+                    "TIME MANIFEST RETURN",
+                    "SERVICES RETURN",
+                    "ORIGIN RESI RETURN",
+                    "DESTINASI RESI RETURN",
+                    "DESTINATION NAME RETURN",
                     "QTY",
-                    "WEIGHT",
-                    "OPS_RUP_INS_DATE",
-                    "OPS_RUP_INS_MODE"
-                ];
+                    "WEIGHT"  ];
 
-                const headerRowIndex = 10; // Baris 10
-                let currentRowIndex = headerRowIndex + 1; // Baris 11
-                worksheet.getRow(headerRowIndex).values = [
-                    "NO",
-                    "UNPAID_SEQ",
-                    "CNOTE_NO",
-                    "ORIGIN_AWAL",
-                    "CNOTE_DATE",
-                    "DOC_NO",
-                    "DOC_DATE",
-                    "SERVICES_CODE",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "CITY_NAME",
-                    "QTY",
-                    "WEIGHT",
-                    "OPS_RUP_INS_DATE",
-                    "OPS_RUP_INS_MODE"
-                ];
+                worksheet.addRow(['Origin:', origin_awal === '0' ? 'ALL' : origin_awal]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Service Code:',(services_code === '0' || services_code === '%') ? 'ALL' : services_code ]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
 
-                worksheet.getColumn(13).numFmt = "m/d/yyyy h:mm:ss AM/PM";
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
 
-                chunk.forEach((row) => {
-                    console.log(row)
-                    worksheet.getRow(currentRowIndex++).values = [no++, ...row];
-                });
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
 
-                const fileName = path.join(folderPath, `RUReport_${dateStr}_${user_id}_part${i + 1}.xlsx`);
-                await workbook.xlsx.writeFile(fileName);
-
-                console.log(`job id ${jobId}`);
                 const updateQuery = `
                     UPDATE CMS_COST_TRANSIT_V2_LOG
                     SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
                 `;
-                const updateValues = {
-                    summary_file: i + 1, // Update the summary_file with the number of parts processed
-                    jobId: jobId
-                };
-                await connection.execute(updateQuery, updateValues);
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'RU'
+                });
                 await connection.commit();
-
-
-                // bar.tick();
-
-                console.log(`Data berhasil diekspor ke ${fileName}`);
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            const zipFileName = path.join(__dirname, 'file_download', `RUReport_${user_id}_${dateStr}_${timeStr}.zip`);
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `RUReport_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
-            const archive = archiver('zip', {
-                zlib: {level: 1}
-            });
-
+            const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
-            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
-
+            resolve({ zipFileName, dataCount: rows.length });
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
-            try {
-                const logDir = path.join(__dirname, 'error_logs');
-                if (!fs.existsSync(logDir)) {
-                    fs.mkdirSync(logDir);
-                }
-                const logFile = path.join(logDir, `error_${Date.now()}.log`);
-                const logContent = `Error Message: ${err.message}\n` +
-                    `Stack Trace: ${err.stack}\n` +
-                    `Input Params: ${JSON.stringify(params, null, 2)}\n`;
-                fs.writeFileSync(logFile, logContent, 'utf-8');
-                console.log(`Parameter input dan error telah ditulis ke ${logFile}`);
-            } catch (writeErr) {
-                console.error('Gagal menulis file log:', writeErr);
-            }
-            reject(err); // Reject if error occurs
+            reject(err);
         } finally {
-            if (connection) {
-                await connection.close();
-            }
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
         }
     });
 }
-
-async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, dateStr,jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
             let whereClause = "WHERE 1 = 1";
             const bindParams = {};
-
-
-            // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
+            if (branch_id !== '0') {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
             }
 
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
-            }
 
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
@@ -3547,11 +4008,8 @@ async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code
                 bindParams.thrus = thrus;
             }
 
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
-            }
 
+            console.log('Menjalankan query data...');
             const result = await connection.execute(`
                         SELECT CNOTE_NO,
                                SERVICES_CODE,
@@ -3564,171 +4022,134 @@ async function fetchDataAndExportToExcelDBO({ branch_id, currency, services_code
                                    WHEN RPAD(REGEXP_SUBSTR(WEIGHT , '[[:digit:]]+$'),3,0) > 300 THEN CEIL(WEIGHT )
                                    ELSE FLOOR(WEIGHT )
                                    END WEIGHT,
-                               ---DECODE(SERVICES_CODE,'INTL',((AMOUNT*CURRENCY_RATE)*0.7),'INT',((AMOUNT*CURRENCY_RATE)*0.7),MGMNT_FEE) AS MFEE,
-                               COST_OPS MFEE,
-                               AMOUNT,
-                               CURRENCY_RATE
+                               NVL(COST_OPS, 0) AS MFEE,
+                               NVL(AMOUNT, 0) AS AMOUNT,
+                               case when CURRENCY = 'IDR' then 1 ELSE 2 END AS CURRENCY_RATE
                         from CMS_COST_DELIVERY_V2 ${whereClause} AND CUST_NA IS NULL AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`,
                 bindParams
             );
-
-
-            dataCount = result.rows.length;
-
-            const chunkSize = 50000;
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
             const chunks = [];
-            for (let i = 0; i < result.rows.length; i += chunkSize) {
-                chunks.push(result.rows.slice(i, i + chunkSize));
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
             }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const timeStr = today.toISOString().split('T')[1].split('.')[0].replace(/:/g, ''); // Time in HHMMSS format
-            const folderPath = path.join(__dirname, `./${uuidv4()}`);
-            // const folderPath = path.join(__dirname, timeStr);
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
-            }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
 
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
+
+            console.log('Memulai proses ekspor Excel...');
             let no = 1;
-            // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `DBOReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DBO');
 
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
-
-                worksheet.addRow(['Branch:', branch_id === '0' ? 'ALL' : branch_id]);
-                worksheet.addRow(['Currency:', currency === '0' ? 'ALL' : currency]);
-                worksheet.addRow(['Service Code:', services_code === '0' ? 'ALL' : services_code]);
-                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
-                worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
-                worksheet.addRow(['User Id:', user_id]);
-                worksheet.addRow(['Jumlah Data:', chunk.length]);
-
-                worksheet.addRow([]);
-
-                const headerRow = worksheet.getRow(11);
-                headerRow.values = [
+                const headers = [
                     "NO",
-                    "CNOTE_NO",
-                    "SERVICES_CODE",
+                    "NO CNOTE",
+                    "SERVICES CODE",
                     "QTY",
                     "CURRENCY",
                     "WEIGHT",
                     "MFEE",
                     "AMOUNT",
-                    "CURRENCY_RATE"
+                    "CURRENCY RATE"
                 ];
 
-                const headerRowIndex = 10; // Baris 10
-                let currentRowIndex = headerRowIndex + 1; // Baris 11
-                worksheet.getRow(headerRowIndex).values = [
-                    "NO",
-                    "CNOTE_NO",
-                    "SERVICES_CODE",
-                    "QTY",
-                    "CURRENCY",
-                    "WEIGHT",
-                    "MFEE",
-                    "AMOUNT",
-                    "CURRENCY_RATE"
-                ];
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                if (branch_id !== '%') {
+                    worksheet.addRow(['Branch:', branch_id]).commit();
+                }else{
+                    worksheet.addRow(['Branch:', 'ALL']).commit();
+                }
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
 
-                worksheet.getColumn(7).numFmt = "#,##0"; // BIAYA PENERUS
-                worksheet.getColumn(8).numFmt = "#,##0"; // BIAYA PENERUS
+                // const numberFormat = new Intl.NumberFormat('id-ID'); // Format angka dengan pemisah ribuan (IDR)
+                for (const row of chunks[i]) {
+                    // let formattedAmount = numberFormat.format(row[6]);  // AMOUNT berada di indeks ke-6
+                    // formattedAmount = formattedAmount.replace('.', ',');  // Mengganti titik dengan koma sebagai pemisah ribuan
+                    // console.log(formattedAmount);
 
-                chunk.forEach((row) => {
-                    console.log(row)
-                    worksheet.getRow(currentRowIndex++).values = [no++, ...row];
-                });
+                    // let rawAmount = row[6].toString().replace(/,/g, '');  // Hapus koma untuk perhitungan
+                    // let amount = parseFloat(rawAmount);  // Konversi menjadi angka
+                    //
+                    // // Format ulang untuk menampilkan angka dengan koma sebagai pemisah ribuan
+                    // let formattedAmount = numberFormat.format(amount);  // Format angka kembali dengan koma
+                    //
+                    // console.log(formattedAmount);  // Menampilkan nilai AMOUNT dengan format ribuan
+                    //
+                    // worksheet.addRow([no++, ...row.slice(0, 6), formattedAmount, ...row.slice(7)]).commit();
 
-                const fileName = path.join(folderPath, `DBOReport_${dateStr}_${user_id}_part${i + 1}.xlsx`);
+                    worksheet.addRow([no++, ...row]).commit();
+                }
 
-                await workbook.xlsx.writeFile(fileName);
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
 
-                console.log(`job id ${jobId}`);
                 const updateQuery = `
                     UPDATE CMS_COST_TRANSIT_V2_LOG
                     SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
                 `;
-                const updateValues = {
-                    summary_file: i + 1, // Update the summary_file with the number of parts processed
-                    jobId: jobId
-                };
-                await connection.execute(updateQuery, updateValues);
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DBO'
+                });
                 await connection.commit();
-
-
-                // bar.tick();
-
-                console.log(`Data berhasil diekspor ke ${fileName}`);
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            const zipFileName = path.join(__dirname, 'file_download', `DBOReport_${user_id}_${dateStr}_${timeStr}.zip`);
-
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `DBOReport_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
-            const archive = archiver('zip', {
-                zlib: {level: 1}
-            });
-
+            const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
-            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
-
+            resolve({ zipFileName, dataCount: rows.length });
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
-            try {
-                const logDir = path.join(__dirname, 'error_logs');
-                if (!fs.existsSync(logDir)) {
-                    fs.mkdirSync(logDir);
-                }
-                const logFile = path.join(logDir, `error_${Date.now()}.log`);
-                const logContent = `Error Message: ${err.message}\n` +
-                    `Stack Trace: ${err.stack}\n` +
-                    `Input Params: ${JSON.stringify(params, null, 2)}\n`;
-                fs.writeFileSync(logFile, logContent, 'utf-8');
-                console.log(`Parameter input dan error telah ditulis ke ${logFile}`);
-            } catch (writeErr) {
-                console.error('Gagal menulis file log:', writeErr);
-            }
-            reject(err); // Reject if error occurs
+            reject(err);
         } finally {
-            if (connection) {
-                await connection.close();
-            }
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
         }
     });
 }
-async function fetchDataAndExportToExcelDBONA({ branch_id, currency, services_code, froms, thrus, user_id, dateStr,jobId}) {
+
+async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id, dateStr,jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
             let whereClause = "WHERE 1 = 1";
             const bindParams = {};
 
-
-            // Gunakan branch_id jika tidak '0'
-            if (branch_id && branch_id !== '0') {
-                whereClause += "AND BRANCH_ID = :branch_id ";
-                bindParams.branch_id = branch_id;
-            }
-
-            // Gunakan currency jika tidak '0'
-            if (currency && currency !== '0') {
-                whereClause += "AND CURRENCY LIKE :currency || '%' ";
-                bindParams.currency = currency;
+            if (branch_id !== '0') {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -3737,11 +4158,8 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, currency, services_co
                 bindParams.thrus = thrus;
             }
 
-            if (services_code && services_code !== '0') {
-                whereClause += "AND SERVICES_CODE = :services_code ";
-                bindParams.services_code = services_code;
-            }
 
+            console.log('Menjalankan query data...');
             const result = await connection.execute(`
                         SELECT CNOTE_NO,
                                SERVICES_CODE,
@@ -3754,151 +4172,384 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, currency, services_co
                                    WHEN RPAD(REGEXP_SUBSTR(WEIGHT , '[[:digit:]]+$'),3,0) > 300 THEN CEIL(WEIGHT )
                                    ELSE FLOOR(WEIGHT )
                                    END WEIGHT,
-                               ---DECODE(SERVICES_CODE,'INTL',((AMOUNT*CURRENCY_RATE)*0.7),'INT',((AMOUNT*CURRENCY_RATE)*0.7),MGMNT_FEE) AS MFEE,
-                               COST_OPS MFEE,
-                               AMOUNT,
-                               CURRENCY_RATE
+                               NVL(COST_OPS, 0) AS MFEE,
+                               TO_CHAR(NVL(AMOUNT, 0), '999G999G999', 'NLS_NUMERIC_CHARACTERS = ''.,''') AS AMOUNT,
+                               case when CURRENCY = 'IDR' then 1 ELSE 2 END AS CURRENCY_RATE
                         from CMS_COST_DELIVERY_V2 ${whereClause} AND CUST_NA = 'Y' AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`,
                 bindParams
             );
 
-
-            dataCount = result.rows.length;
-
-            const chunkSize = 50000;
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = 1000000;
             const chunks = [];
-            for (let i = 0; i < result.rows.length; i += chunkSize) {
-                chunks.push(result.rows.slice(i, i + chunkSize));
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
             }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-            const today = new Date();
-            const dateStr = today.toISOString().split('T')[0];
-            const timeStr = today.toISOString().split('T')[1].split('.')[0].replace(/:/g, ''); // Time in HHMMSS format
-            const folderPath = path.join(__dirname, `./${uuidv4()}`);
-            // const folderPath = path.join(__dirname, timeStr);
-            if (!fs.existsSync(folderPath)) {
-                fs.mkdirSync(folderPath);
-                console.log(`Folder ${dateStr} telah dibuat.`);
-            }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
+            console.log('Memulai proses ekspor Excel...');
             let no = 1;
-            // Loop through each chunk, create an Excel file, and save it
             for (let i = 0; i < chunks.length; i++) {
-                const chunk = chunks[i];
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `DBONAReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DBONA');
 
-                const workbook = new ExcelJS.Workbook();
-                const worksheet = workbook.addWorksheet('Data Laporan');
-
-                worksheet.addRow(['Branch:', branch_id === '0' ? 'ALL' : branch_id]);
-                worksheet.addRow(['Currency:', currency === '0' ? 'ALL' : currency]);
-                worksheet.addRow(['Service Code:', services_code === '0' ? 'ALL' : services_code]);
-                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
-                worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
-                worksheet.addRow(['User Id:', user_id]);
-                worksheet.addRow(['Jumlah Data:', chunk.length]);
-
-                worksheet.addRow([]);
-
-                const headerRow = worksheet.getRow(11);
-                headerRow.values = [
+                const headers = [
                     "NO",
-                    "CNOTE_NO",
-                    "SERVICES_CODE",
+                    "CNOTE NO",
+                    "SERVICES CODE",
                     "QTY",
                     "CURRENCY",
                     "WEIGHT",
                     "MFEE",
                     "AMOUNT",
-                    "CURRENCY_RATE"
+                    "CURRENCY RATE"
                 ];
 
-                const headerRowIndex = 10; // Baris 10
-                let currentRowIndex = headerRowIndex + 1; // Baris 11
-                worksheet.getRow(headerRowIndex).values = [
-                    "NO",
-                    "CNOTE_NO",
-                    "SERVICES_CODE",
-                    "QTY",
-                    "CURRENCY",
-                    "WEIGHT",
-                    "MFEE",
-                    "AMOUNT",
-                    "CURRENCY_RATE"
-                ];
 
-                worksheet.getColumn(7).numFmt = "#,##0"; // BIAYA PENERUS
-                worksheet.getColumn(8).numFmt = "#,##0"; // BIAYA PENERUS
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                if (branch_id !== '%') {
+                    worksheet.addRow(['Branch:', branch_id]).commit();
+                }else{
+                    worksheet.addRow(['Branch:', 'ALL']).commit();
+                }
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Datas:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
 
-                chunk.forEach((row) => {
-                    console.log(row)
-                    worksheet.getRow(currentRowIndex++).values = [no++, ...row];
-                });
+                for (const row of chunks[i]) {
+                    // worksheet.addRow([no++, ...row]).commit();
+                    // const numericIndices = [6, 7]; // MFEE dan AMOUNT
+                    //
+                    // numericIndices.forEach(idx => {
+                    //     if (typeof value === 'string') {
+                    //         // Ubah "150.000" jadi 150000 (number)
+                    //         return parseFloat(value.replace(/\./g, '').replace(/,/g, '')) || 0;
+                    //     } else if (typeof value === 'number') {
+                    //         return value;
+                    //     } else {
+                    //         return 0;
+                    //     }
+                    // });
+                    //
+                    // const newRow = worksheet.addRow([no++, ...row]);
+                    //
+                    // newRow.getCell(7).numFmt = '#,##0'; // MFEE → tampil "150.000"
+                    // newRow.getCell(8).numFmt = '#,##0'; // AMOUNT → tampil "150.000"
+                    //
+                    // newRow.commit();
 
-                const fileName = path.join(folderPath, `DBONAReport_${dateStr}_${user_id}_part${i + 1}.xlsx`);
+                    const numericIndices = [6, 7];
+                    numericIndices.forEach(idx => {
+                        const value = row[idx];
+                        if (typeof value === 'string') {
+                            // Hapus semua titik/koma lalu ubah ke number
+                            row[idx] = parseFloat(value.replace(/[.,]/g, '')) || 0;
+                        }
+                    });
 
-                await workbook.xlsx.writeFile(fileName);
+                    const newRow = worksheet.addRow([no++, ...row]);
 
-                console.log(`job id ${jobId}`);
+                    // Format agar tampil 150,000
+                    newRow.getCell(7).numFmt = '#,##0'; // MFEE
+                    newRow.getCell(8).numFmt = '#,##0'; // AMOUNT
+
+                    newRow.commit();
+                }
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
                 const updateQuery = `
                     UPDATE CMS_COST_TRANSIT_V2_LOG
                     SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
                 `;
-                const updateValues = {
-                    summary_file: i + 1, // Update the summary_file with the number of parts processed
-                    jobId: jobId
-                };
-                await connection.execute(updateQuery, updateValues);
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DBONA'
+                });
                 await connection.commit();
-
-
-                // bar.tick();
-
-                console.log(`Data berhasil diekspor ke ${fileName}`);
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            const zipFileName = path.join(__dirname, 'file_download', `DBONAReport_${user_id}_${dateStr}_${timeStr}.zip`);
-
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `DBONAReport_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
-            const archive = archiver('zip', {
-                zlib: {level: 1}
-            });
-
+            const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
-            console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
+            resolve({ zipFileName, dataCount: rows.length });
+        } catch (err) {
+            console.error('Terjadi kesalahan:', err);
+            reject(err);
+        } finally {
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
+        }
+    });
+}
+
+/**
+ * ---------------------------------------------------------------------------
+ *  FETCH & EXPORT  ▸  DBONASUM   (1 workbook, 3 sheets)
+ * ---------------------------------------------------------------------------
+ *  • Sheet 1 : data dengan COST_OPS ≠ NULL  &  non-INT
+ *  • Sheet 2 : data dengan COST_OPS  IS NULL
+ *  • Sheet 3 : data INTL (SERVICES_CODE LIKE '%INT%')
+ * ---------------------------------------------------------------------------
+ */
+async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user_id, dateStr, jobId }) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            function calculateTotal(rows, indices) {
+                const totals = new Array(indices.length).fill(0);
+                for (const row of rows) {
+                    indices.forEach((idx, i) => {
+                        const val = parseFloat(row[idx]) || 0;
+                        totals[i] += val;
+                    });
+                }
+                return totals.map(num => Math.round(num));
+            }
+
+            connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
+
+            const workbook = new ExcelJS.Workbook();
+            const worksheet = workbook.addWorksheet('Data Laporan Biaya Operasional');
+            let rowIndex = 1;
+
+            worksheet.addRow(['Branch:', branch_id === '0' ? 'ALL' : branch_id]);
+            worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]);
+            worksheet.addRow(['Download Date:', new Date().toLocaleString()]);
+            worksheet.addRow(['User Id:', user_id]);
+            worksheet.addRow([]);
+            rowIndex = worksheet.lastRow.number + 2;
+
+            // === TABEL SUMMARY OPS ===
+            worksheet.getRow(rowIndex++).values = ['Biaya Operasional Non NA'];
+            worksheet.getRow(rowIndex++).values = [
+                'Services Code', 'QTY', 'Currency', 'Weight', 'Awb',
+                'Amount', 'Nett Amount', 'Cost Ops', 'Currency Rate', 'Tipe', 'Biaya Ops'
+            ];
+
+            const summaryOps = await connection.execute(`
+                SELECT
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    SUM(AMOUNT)/1.011 AS NETT_AMOUNT,
+                    SUM(COST_OPS),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
+                        ELSE 'EXP'
+                        END TIPE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23') THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE LIKE '%TRC%' THEN 0
+                        ELSE (SUM(AMOUNT)/1.011) * 0.1
+                        END BIAYA_OPS_NEW
+                FROM CMS_COST_DELIVERY_v2
+                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
+                  AND COST_OPS IS NOT NULL
+                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
+                  AND SERVICES_CODE NOT LIKE '%INT%'
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, { branch: branch_id, date1: froms, date2: thrus });
+
+            summaryOps.rows.forEach(row => {
+                const r = worksheet.getRow(rowIndex++);
+                r.values = row;
+                [2, 4, 5, 6, 7, 11].forEach(col => r.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalOps = calculateTotal(summaryOps.rows, [1, 3, 4, 5, 6, 7, 10]);
+            const totalRowOps = worksheet.getRow(rowIndex++);
+            totalRowOps.values = [
+                'TOTAL', totalOps[0], '', totalOps[1], totalOps[2],
+                totalOps[3], totalOps[4], totalOps[5], '', '', totalOps[6]
+            ];
+            [2, 4, 5, 6, 7, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
+
+            // === TABEL SUMMARY NO OPS ===
+            rowIndex += 2;
+            worksheet.getRow(rowIndex++).values = ['Biaya Operasional Non NA'];
+            worksheet.getRow(rowIndex++).values = [
+                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight',
+                'Amount', 'Tipe', 'Currency Rate'
+            ];
+
+            const summaryNoOps = await connection.execute(`
+                SELECT
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CARGO23','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
+                  AND COST_OPS IS NULL
+                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, { branch: branch_id, date1: froms, date2: thrus });
+
+            summaryNoOps.rows = summaryNoOps.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[5], row[7], row[6]
+            ]);
+
+            summaryNoOps.rows.forEach(row => {
+                const r = worksheet.getRow(rowIndex++);
+                r.values = row;
+                [3,4, 5, 6].forEach(col => r.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalNoOps = calculateTotal(summaryNoOps.rows, [2,3, 4, 5]);
+            const totalRowNoOps = worksheet.getRow(rowIndex++);
+            totalRowNoOps.values = [
+                '', 'TOTAL', totalNoOps[0], totalNoOps[1], totalNoOps[2], totalNoOps[3], '', ''
+
+            ];
+            [3,4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
+
+            // === TABEL SUMMARY INTL ===
+            rowIndex += 2;
+            worksheet.getRow(rowIndex++).values = ['Penjualan Internasional'];
+            worksheet.getRow(rowIndex++).values = [
+                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight', 'Tipe', 'Amount'
+            ];
+
+            const summaryIntl = await connection.execute(`
+                SELECT
+                    SERVICES_CODE AS SERVICES_CODE4,
+                    SUM(QTY) AS SUM_QTY4,
+                    CURRENCY AS CURRENCY4,
+                    SUM(WEIGHT) AS SUM_WEIGHT4,
+                    COUNT(CNOTE_NO) AS COUNT_CNOTE4,
+                    SUM(AMOUNT) AS AMOUNT4,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
+                  AND COST_OPS IS NOT NULL
+                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
+                  AND SERVICES_CODE LIKE '%INT%'
+                  AND SERVICES_CODE NOT LIKE '%TRC%'
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY
+            `, { branch: branch_id, date1: froms, date2: thrus });
+
+            summaryIntl.rows = summaryIntl.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[6], row[5]
+            ]);
+
+            summaryIntl.rows.forEach(row => {
+                const r = worksheet.getRow(rowIndex++);
+                r.values = row;
+                [3, 4, 5, 7].forEach(col => r.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalIntl = calculateTotal(summaryIntl.rows, [2, 3, 4, 6]);
+            const totalRowIntl = worksheet.getRow(rowIndex++);
+            totalRowIntl.values = [
+                '', 'TOTAL', totalIntl[0], totalIntl[1], totalIntl[2], '', totalIntl[3]
+            ];
+            [3, 4, 5, 7].forEach(col => totalRowIntl.getCell(col).numFmt = '#,##0');
+
+            // Simpan file'
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+
+            const zipFileName = path.join(__dirname, 'file_download', `Biaya Operasional Report ${user_id}_${timeString}_${uuidv4()}.xlsx`);
+            await workbook.xlsx.writeFile(zipFileName);
+
+
+
+            resolve({ zipFileName, dataCount: 1 });
 
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
             try {
                 const logDir = path.join(__dirname, 'error_logs');
-                if (!fs.existsSync(logDir)) {
-                    fs.mkdirSync(logDir);
-                }
+                if (!fs.existsSync(logDir)) fs.mkdirSync(logDir);
                 const logFile = path.join(logDir, `error_${Date.now()}.log`);
                 const logContent = `Error Message: ${err.message}\n` +
                     `Stack Trace: ${err.stack}\n` +
-                    `Input Params: ${JSON.stringify(params, null, 2)}\n`;
+                    `Input Params: ${JSON.stringify({ branch_id, froms, thrus, user_id, dateStr, jobId }, null, 2)}\n`;
                 fs.writeFileSync(logFile, logContent, 'utf-8');
                 console.log(`Parameter input dan error telah ditulis ke ${logFile}`);
             } catch (writeErr) {
                 console.error('Gagal menulis file log:', writeErr);
             }
-            reject(err); // Reject if error occurs
+            reject(err);
         } finally {
-            if (connection) {
-                await connection.close();
-            }
+            if (connection) await connection.close();
         }
     });
 }
 
+const getQueueToAddJob = async (branch_id) => {
+    if (branch_id === 'CGK000') {
+        // Jika branch_id adalah CGK000, masukkan ke queue3
+        return reportQueue3;
+    }
+    // Mengambil jumlah pekerjaan yang sedang berjalan pada masing-masing queue
+    const activeJobs1 = await reportQueue.getJobs(['waiting', 'active']);
+    const activeJobs2 = await reportQueue2.getJobs(['waiting', 'active']);
+    const activeJobs3 = await reportQueue3.getJobs(['waiting', 'active']);
+
+    // Menentukan queue dengan pekerjaan paling sedikit
+    if (activeJobs1.length <= activeJobs2.length && activeJobs1.length <= activeJobs3.length) {
+        return reportQueue;
+    } else if (activeJobs2.length <= activeJobs1.length && activeJobs2.length <= activeJobs3.length) {
+        return reportQueue2;
+    } else {
+        return reportQueue3;
+    }
+};
 // Define API endpoint with query parameters
 app.get("/getreporttco", async (req, res) => {
     try {
@@ -3926,25 +4577,16 @@ app.get("/getreporttco", async (req, res) => {
                 .json({ success: false, message: "Missing required parameters" });
         }
 
-        // Estimasi jumlah data
-        // const estimatedDataCount = await estimateDataCount({
-        //     origin,
-        //     destination,
-        //     froms,
-        //     thrus,
-        //     user_id
-        // });
-        //
-        // // Calculate the estimated time based on the benchmark
-        // const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        // const estimatedTimeMinutes =
-        //     (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
+            // Add the job to the queue
+            type: 'tco',
             origin,
             destination,
             froms,
@@ -3969,7 +4611,7 @@ app.get("/getreporttco", async (req, res) => {
 
         //estimatedDataCount: estimatedDataCount,
         //estimatedTimeMinutes: estimatedTimeMinutes,
-        // const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
         const connection = await oracledb.getConnection(config);
 
         const insertProcedure = `
@@ -4000,71 +4642,18 @@ app.get("/getreporttco", async (req, res) => {
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
             datacount: 0,
-            count_per_file: 50000,
+            count_per_file: 1000000,
             total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
+        console.log("insert data tco :" +insertValues)
         let generatedQuery = insertProcedure;
 
-        // Replace placeholders with actual values
-        // generatedQuery = generatedQuery
-        //     .replace(":user_name", `'${insertValues.user_name}'`)
-        //     .replace(":name_file", `'${insertValues.name_file}'`)
-        //     .replace(":duration", insertValues.duration)
-        //     .replace(":category", `'${insertValues.category}'`)
-        //     .replace(":periode", `'${insertValues.periode}'`)
-        //     .replace(":status", `'${insertValues.status}'`)
-        //     .replace(":job_server", `'${insertValues.job_server}'`)
-        //     .replace(":datacount", insertValues.datacount)
-        //     .replace(":count_per_file", insertValues.count_per_file)
-        //     .replace(":total_file", insertValues.total_file)
-        //     .replace(":branch", `'${insertValues.branch}'`)
-        //     .replace(":log_json", `'${insertValues.log_json}'`);
-        //
-        // // Log the query to console
-        // console.log("Generated SQL Query:");
-        // console.log(generatedQuery);
-        //
-        // console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
-        //
-        // const insertQuery = `
-        //     INSERT INTO CMS_COST_TRANSIT_V2_LOG (USER_NAME, NAME_FILE, DURATION, CATEGORY, PERIODE, STATUS,
-        //                                          DOWNLOAD, CREATED_AT, ID_JOB_REDIS, DATACOUNT, COUNT_PER_FILE,
-        //                                          SUMMARY_FILE, TOTAL_FILE, LOG_JSON)
-        //     VALUES (:user_name, :name_file, :duration, :category, :periode, :status, :download, :created_at,
-        //             :id_job, :datacount, :count_per_file, :summary_file, :total_file, :log_json)
-        // `;
-        // // Set values to be inserted
-        // const insertValues = {
-        //     id_job: job.id,
-        //     user_name: user_id,  // user_id sebagai USER_NAME
-        //     name_file: '',       // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-        //     duration: estimatedTimeMinutes.toFixed(2), // Estimasi waktu
-        //     category: 'TCO',     // Kategori adalah TCI
-        //     periode: `${froms} - ${thrus}`, // Rentang periode
-        //     status: 'Process',   // Status awal adalah Pending
-        //     download: 0,         // Belum diunduh, set download = 0
-        //     created_at: new Date(), // Timestamp saat data dimasukkan,
-        //     datacount: estimatedDataCount,
-        //     total_file: count_per_file,
-        //     summary_file: '0',
-        //     count_per_file: 50000,
-        //     log_json: clobJson
-        // };
-        // await connection.execute(insertQuery, insertValues);
-        // await connection.commit();
-        // res.status(200).json({
-        //     success: true,
-        //     message: 'Job added successfully, processing in the background.',
-        //     jobId: job.id,
-        //     estimatedDataCount: estimatedDataCount , // Send the estimated data count
-        //     estimatedTimeMinutes: estimatedTimeMinutes.toFixed(2) // Estimated processing time in minutes
-        // });
         const logFilePath = path.join(
             __dirname,
             "log_files",
@@ -4085,7 +4674,7 @@ app.get("/getreporttco", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
 
@@ -4137,26 +4726,13 @@ app.get("/getreporttci", async (req, res) => {
         // }
 
         // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountTCI({
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            TM,
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes = Math.round(
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2
-        ); // Estimated time in minutes (rounded)
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueTCI.add({
+        const job = await reportQueue.add({
+            type: 'tci',
             origin,
             destination,
             froms,
@@ -4175,14 +4751,14 @@ app.get("/getreporttci", async (req, res) => {
             user_id: user_id,
             TM: TM,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
         };
 
         const clobJson = JSON.stringify(jsonData);
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
         const connection = await oracledb.getConnection(config);
 
         const insertProcedure = `
@@ -4207,41 +4783,21 @@ app.get("/getreporttci", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "TCI", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
-            count_per_file: 50000,
-            total_file: count_per_file,
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
+        console.log("insert data tci :" +insertValues)
 
         // Generate and log the query
-        let generatedQuery = insertProcedure;
 
-        // Replace placeholders with actual values
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4266,8 +4822,8 @@ app.get("/getreporttci", async (req, res) => {
         if (!fs.existsSync(path.dirname(logFilePath))) {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
-        // http://10.8.2.48:8080/ords/f?p=101:78:17076041502424::NO::P78_USER:YASIQIN
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        // https://dash-ctc.jne.co.id:8443/ords/f?p=101:78:17076041502424::NO::P78_USER:YASIQIN
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
@@ -4334,25 +4890,13 @@ app.get("/getreportdci", async (req, res) => {
         //     });
         // }
         // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountDCI({
-            origin,
-            destination,
-            froms,
-            thrus,
-            service,
-            user_id,
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueDCI.add({
+        const job = await reportQueue.add({
+            type: 'dci',
             origin,
             destination,
             froms,
@@ -4370,15 +4914,15 @@ app.get("/getreportdci", async (req, res) => {
             thrus: thrus,
             user_id: user_id,
             service: service,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
             user_session: user_session,
         };
 
         const clobJson = JSON.stringify(jsonData);
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4404,39 +4948,19 @@ app.get("/getreportdci", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DCI", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
-            count_per_file: 50000,
-            total_file: count_per_file,
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
+        console.log("insert data dci :" +insertValues)
 
-        let generatedQuery = insertProcedure;
-
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4463,7 +4987,7 @@ app.get("/getreportdci", async (req, res) => {
         //     datacount: estimatedDataCount,
         //     total_file: count_per_file,
         //     summary_file: '0',
-        //     count_per_file: 50000,
+        //     count_per_file: 1000000,
         //     log_json: clobJson
         //
         // };
@@ -4498,13 +5022,13 @@ app.get("/getreportdci", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
-        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:62:${user_session}::NO::P78_USER:${user_id}`;
+        // const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:62:${user_session}::NO::P78_USER:${user_id}`;
         // res.redirect(redirectUrl);
         // Send the log file for download
         // res.download(logFilePath, (err) => {
@@ -4555,25 +5079,13 @@ app.get("/getreportdco", async (req, res) => {
         }
 
         // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountDCO({
-            origin,
-            destination,
-            froms,
-            thrus,
-            service,
-            user_id
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueDCO.add({
+        const job = await reportQueue.add({
+            type: 'dco',
             origin,
             destination,
             froms,
@@ -4591,15 +5103,15 @@ app.get("/getreportdco", async (req, res) => {
             user_id: user_id,
             service: service,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4625,41 +5137,20 @@ app.get("/getreportdco", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DCO", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
-            count_per_file: 50000,
-            total_file: count_per_file,
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
-        // Generate and log the query
-        let generatedQuery = insertProcedure;
+        console.log("insert data dco :" +insertValues)
 
-        // Replace placeholders with actual values
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4684,12 +5175,12 @@ app.get("/getreportdco", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
-        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
+        // const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
         // res.redirect(redirectUrl);
         // Send the log file for download
         // res.download(logFilePath, (err) => {
@@ -4733,25 +5224,13 @@ app.get("/getreportca", async (req, res) => {
                 .json({ success: false, message: "Missing required parameters" });
         }
 
-        // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountCA({
-            branch,
-            froms,
-            thrus,
-            user_id
-        });
-
-        console.log('tes')
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueCA.add({
+        const job = await reportQueue.add({
+            type: 'ca',
             branch,
             froms,
             thrus,
@@ -4765,14 +5244,14 @@ app.get("/getreportca", async (req, res) => {
             thrus: thrus,
             user_id: user_id,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 1);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4798,41 +5277,20 @@ app.get("/getreportca", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "CA", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
+            datacount: 0,
             count_per_file: 0,
-            total_file: count_per_file,
+            total_file: 0,
             branch: "", // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
 
         // Generate and log the query
-        let generatedQuery = insertProcedure;
 
-        // Replace placeholders with actual values
-        generatedQuery = generatedQuery
-            .replace(":user_name", `'${insertValues.user_name}'`)
-            .replace(":name_file", `'${insertValues.name_file}'`)
-            .replace(":duration", insertValues.duration)
-            .replace(":category", `'${insertValues.category}'`)
-            .replace(":periode", `'${insertValues.periode}'`)
-            .replace(":status", `'${insertValues.status}'`)
-            .replace(":job_server", `'${insertValues.job_server}'`)
-            .replace(":datacount", insertValues.datacount)
-            .replace(":count_per_file", insertValues.count_per_file)
-            .replace(":total_file", insertValues.total_file)
-            .replace(":branch", `'${insertValues.branch}'`)
-            .replace(":log_json", `'${insertValues.log_json}'`);
-
-        // Log the query to console
-        console.log("Generated SQL Query:");
-        console.log(generatedQuery);
-
-        console.log(insertValues);
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
 
@@ -4855,12 +5313,12 @@ app.get("/getreportca", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
         // Write the log message to the file
         // fs.writeFileSync(logFilePath, logMessage, 'utf8');
 
-        // const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
+        // const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:63:${user_session}::NO::P78_USER:${user_id}`;
         // res.redirect(redirectUrl);
         // Send the log file for download
         // res.download(logFilePath, (err) => {
@@ -4910,26 +5368,13 @@ app.get("/getreportru", async (req, res) => {
                 .json({ success: false, message: "Missing required parameters" });
         }
 
-        // Estimasi jumlah data
-        const estimatedDataCount = await estimateDataCountRU({
-            origin_awal,
-            destination,
-            services_code,
-            froms,
-            thrus,
-            user_id
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueRU.add({
+        const job = await reportQueue.add({
+            type: 'ru',
             origin_awal,
             destination,
             services_code,
@@ -4947,15 +5392,15 @@ app.get("/getreportru", async (req, res) => {
             user_id: user_id,
             service: services_code,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch_id: branch_id,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -4981,17 +5426,18 @@ app.get("/getreportru", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "RU", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
-            count_per_file: 50000,
-            total_file: count_per_file,
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
+        console.log("insert data ru :" +insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -5018,7 +5464,7 @@ app.get("/getreportru", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
@@ -5032,8 +5478,6 @@ app.get("/getreportdbo", async (req, res) => {
     try {
         const {
             branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5043,11 +5487,9 @@ app.get("/getreportdbo", async (req, res) => {
 
         if (
             !branch_id ||
-            !currency ||
             !froms ||
             !thrus ||
             !user_id ||
-            !services_code ||
             !branch ||
             !user_session
         ) {
@@ -5058,29 +5500,13 @@ app.get("/getreportdbo", async (req, res) => {
 
 
 
-        // Default, pakai fungsi estimateDataCountDBO
-        estimatedDataCount = await estimateDataCountDBO({
-            branch_id,
-            currency,
-            services_code,
-            froms,
-            thrus,
-            user_id
-        });
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
-
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueDBO.add({
+        const job = await reportQueue.add({
+            type: 'dbo',
             branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5089,21 +5515,19 @@ app.get("/getreportdbo", async (req, res) => {
 
         const jsonData = {
             branch_id: branch_id,
-            currency: currency,
-            services_code: services_code,
             froms: froms,
             thrus: thrus,
             user_id: user_id,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch: branch,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -5129,17 +5553,18 @@ app.get("/getreportdbo", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DBO", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
-            count_per_file: 50000,
-            total_file: count_per_file,
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
+        console.log("insert data DBO :" +insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -5153,11 +5578,9 @@ app.get("/getreportdbo", async (req, res) => {
         const logMessage = `
             Job ID: ${job.id}
             branch_id: ${branch_id}
-            currency: ${currency}
             From Date: ${froms}
             To Date: ${thrus}
             User ID: ${user_id}
-            Service: ${services_code}
             Status: Pending
             created_at: ${new Date()}
         `;
@@ -5166,7 +5589,7 @@ app.get("/getreportdbo", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
@@ -5180,8 +5603,6 @@ app.get("/getreportdbona", async (req, res) => {
     try {
         const {
             branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5191,11 +5612,9 @@ app.get("/getreportdbona", async (req, res) => {
 
         if (
             !branch_id ||
-            !currency ||
             !froms ||
             !thrus ||
             !user_id ||
-            !services_code ||
             !branch ||
             !user_session
         ) {
@@ -5205,29 +5624,13 @@ app.get("/getreportdbona", async (req, res) => {
         }
 
 
-        estimatedDataCount = await estimateDataCountDBONA({
-            branch_id,
-            currency,
-            services_code,
-            froms,
-            thrus,
-            user_id
-        });
-
-
-        // Calculate the estimated time based on the benchmark
-        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-        const estimatedTimeMinutes =
-            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
-
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
         // Add the job to the queue
-        const job = await reportQueueDBONA.add({
+        const job = await reportQueue.add({
+            type: 'dbona',
             branch_id,
-            currency,
-            services_code,
             froms,
             thrus,
             user_id,
@@ -5236,21 +5639,19 @@ app.get("/getreportdbona", async (req, res) => {
 
         const jsonData = {
             branch_id: branch_id,
-            currency: currency,
-            services_code: services_code,
             froms: froms,
             thrus: thrus,
             user_id: user_id,
             user_session: user_session,
-            estimatedDataCount: estimatedDataCount,
-            estimatedTimeMinutes: estimatedTimeMinutes,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
             dateStr: dateStr,
             branch: branch,
         };
 
         const clobJson = JSON.stringify(jsonData);
 
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
         const connection = await oracledb.getConnection(config);
 
@@ -5276,17 +5677,18 @@ app.get("/getreportdbona", async (req, res) => {
         const insertValues = {
             user_name: user_id, // user_id sebagai USER_NAME
             name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
-            duration: estimatedTimeMinutes, // Estimasi waktu
+            duration: 0, // Estimasi waktu
             category: "DBONA", // Kategori adalah TCO
             periode: `${froms} - ${thrus}`, // Rentang periode
             status: "Process", // Status awal adalah Pending
             job_server: job.id, // ID job
-            datacount: estimatedDataCount,
-            count_per_file: 50000,
-            total_file: count_per_file,
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
+        console.log("insert data DBONA :" +insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -5300,11 +5702,9 @@ app.get("/getreportdbona", async (req, res) => {
         const logMessage = `
             Job ID: ${job.id}
             branch_id: ${branch_id}
-            currency: ${currency}
             From Date: ${froms}
             To Date: ${thrus}
             User ID: ${user_id}
-            Service: ${services_code}
             Status: Pending
             created_at: ${new Date()}
         `;
@@ -5313,7 +5713,7 @@ app.get("/getreportdbona", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
@@ -5323,354 +5723,128 @@ app.get("/getreportdbona", async (req, res) => {
         });
     }
 });
-
-app.get('/jobstco', async (req, res) => {
+app.get("/getreportdbonasum", async (req, res) => {
     try {
-        // Get the list of all jobs in the queue
-        const jobs = await reportQueue.getJobs();
+        const {
+            branch_id,
+            froms,
+            thrus,
+            user_id,
+            branch,
+            user_session,
+        } = req.query;
 
-        // Count the jobs based on their status
-        const succeededJobs = await reportQueue.getJobs(['completed']);
-        const waitingJobs = await reportQueue.getJobs(['waiting']);
-        const activeJobs = await reportQueue.getJobs(['active']);
-
-        // Prepare table headers
-        const headers = ['ID', 'User ID', 'Progress', 'Status', 'Error Reason'];
-
-        // Format job data into a table structure
-        const table = jobs.map((job) => {
-            return {
-                ID: job.id,
-                UserID: job.data.user_id,
-                Progress: job.progress,
-                Status: job.returnvalue ? job.returnvalue : 'Failed',
-                ErrorReason: job.failedReason || '-'
-            };
-        });
-
-        // Respond with table headers, job data, and the count of jobs
-        res.json({
-            success: true,
-            tableHeaders: headers,
-            tableData: table,
-            totalJobs: jobs.length, // Total number of jobs
-            succeededJobs: succeededJobs.length, // Total succeeded jobs
-            waitingJobs: waitingJobs.length, // Total waiting jobs
-            activeJobs: activeJobs.length // Total active jobs
-        });
-
-    } catch (err) {
-        console.error('Error getting jobs:', err);
-        res.status(500).send({success: false, message: 'Error fetching jobs.'});
-    }
-});
-app.get('/jobstci', async (req, res) => {
-    try {
-        // Get the list of all jobs in the queue
-        const jobs = await reportQueue.getJobs();
-
-        // Count the jobs based on their status
-        const succeededJobs = await reportQueueTCI.getJobs(['completed']);
-        const waitingJobs = await reportQueueTCI.getJobs(['waiting']);
-        const activeJobs = await reportQueueTCI.getJobs(['active']);
-
-        // Prepare table headers
-        const headers = ['ID', 'User ID', 'Progress', 'Status', 'Error Reason'];
-
-        // Format job data into a table structure
-        const table = jobs.map((job) => {
-            return {
-                ID: job.id,
-                UserID: job.data.user_id,
-                Progress: job.progress,
-                Status: job.returnvalue ? job.returnvalue : 'Failed',
-                ErrorReason: job.failedReason || '-'
-            };
-        });
-
-        // Respond with table headers, job data, and the count of jobs
-        res.json({
-            success: true,
-            tableHeaders: headers,
-            tableData: table,
-            totalJobs: jobs.length, // Total number of jobs
-            succeededJobs: succeededJobs.length, // Total succeeded jobs
-            waitingJobs: waitingJobs.length, // Total waiting jobs
-            activeJobs: activeJobs.length // Total active jobs
-        });
-
-    } catch (err) {
-        console.error('Error getting jobs:', err);
-        res.status(500).send({success: false, message: 'Error fetching jobs.'});
-    }
-});
-app.get('/jobsdci', async (req, res) => {
-    try {
-        // Get the list of all jobs in the queue
-        const jobs = await reportQueueDCI.getJobs();
-
-        // Count the jobs based on their status
-        const succeededJobs = await reportQueue.getJobs(['completed']);
-        const waitingJobs = await reportQueue.getJobs(['waiting']);
-        const activeJobs = await reportQueue.getJobs(['active']);
-
-        // Prepare table headers
-        const headers = ['ID', 'User ID', 'Progress', 'Status', 'Error Reason'];
-
-        // Format job data into a table structure
-        const table = jobs.map((job) => {
-            return {
-                ID: job.id,
-                UserID: job.data.user_id,
-                Progress: job.progress,
-                Status: job.returnvalue ? job.returnvalue : 'Failed',
-                ErrorReason: job.failedReason || '-'
-            };
-        });
-
-        // Respond with table headers, job data, and the count of jobs
-        res.json({
-            success: true,
-            tableHeaders: headers,
-            tableData: table,
-            totalJobs: jobs.length, // Total number of jobs
-            succeededJobs: succeededJobs.length, // Total succeeded jobs
-            waitingJobs: waitingJobs.length, // Total waiting jobs
-            activeJobs: activeJobs.length // Total active jobs
-        });
-
-    } catch (err) {
-        console.error('Error getting jobs:', err);
-        res.status(500).send({success: false, message: 'Error fetching jobs.'});
-    }
-});
-app.get('/jobsdco', async (req, res) => {
-    try {
-        // Get the list of all jobs in the queue
-        const jobs = await reportQueueDCO.getJobs();
-
-        // Count the jobs based on their status
-        const succeededJobs = await reportQueue.getJobs(['completed']);
-        const waitingJobs = await reportQueue.getJobs(['waiting']);
-        const activeJobs = await reportQueue.getJobs(['active']);
-
-        // Prepare table headers
-        const headers = ['ID', 'User ID', 'Progress', 'Status', 'Error Reason'];
-
-        // Format job data into a table structure
-        const table = jobs.map((job) => {
-            return {
-                ID: job.id,
-                UserID: job.data.user_id,
-                Progress: job.progress,
-                Status: job.returnvalue ? job.returnvalue : 'Failed',
-                ErrorReason: job.failedReason || '-'
-            };
-        });
-
-        // Respond with table headers, job data, and the count of jobs
-        res.json({
-            success: true,
-            tableHeaders: headers,
-            tableData: table,
-            totalJobs: jobs.length, // Total number of jobs
-            succeededJobs: succeededJobs.length, // Total succeeded jobs
-            waitingJobs: waitingJobs.length, // Total waiting jobs
-            activeJobs: activeJobs.length // Total active jobs
-        });
-
-    } catch (err) {
-        console.error('Error getting jobs:', err);
-        res.status(500).send({success: false, message: 'Error fetching jobs.'});
-    }
-});
-
-app.get('/jobstco/:id', async (req, res) => {
-    try {
-        const job = await reportQueue.getJob(req.params.id);
-        if (job) {
-            let statusfix = 'Failed';  // Default status is Failed
-            let errorMessage = '';
-            let filenamezip = 'Not Available';
-
-            console.log('test' + JSON.stringify(job.returnvalue));
-            // If job is done and no error, status is Success
-            if (job.returnvalue) {
-                if (job.returnvalue.status === 'done') {
-                    statusfix = 'Sukses';
-                    filenamezip = job.returnvalue.zipFileName;  // If job is done, attach filename
-                } else if (job.returnvalue.error) {
-                    statusfix = 'Failed';
-                    errorMessage = job.returnvalue.error;  // Include error message if exists
-                }
-            } else {
-                if (job.isWaiting()) {
-                    statusfix = 'Pending';  // Job is waiting in the queue
-                } else {
-                    statusfix = 'Failed';
-                }
-            }
-
-            res.json({
-                success: true,
-                id: job.id,
-                Origin: job.data.origin,
-                Destination: job.data.destination,
-                FromDate: job.data.froms,
-                ToDate: job.data.thrus,
-                UserID: job.data.user_id,
-                service: job.data.service,
-                Status: statusfix,  // Return statusfix (Sukses, Failed, or Pending)
-                filenamezip: filenamezip,
-                errorMessage: errorMessage // Include error message if exists
-            });
-        } else {
-            res.status(404).send({success: false, message: 'Job not found.'});
+        if (
+            !branch_id ||
+            !froms ||
+            !thrus ||
+            !user_id ||
+            !branch ||
+            !user_session
+        ) {
+            return res
+                .status(400)
+                .json({ success: false, message: "Missing required parameters" });
         }
-    } catch (err) {
-        console.error('Error fetching job:', err);
-        res.status(500).send({success: false, message: 'Error fetching job.'});
-    }
-});
-app.get('/jobstci/:id', async (req, res) => {
-    try {
-        const job = await reportQueueTCI.getJob(req.params.id);
-        if (job) {
-            let statusfix = 'Failed';  // Default status is Failed
-            let errorMessage = '';
-            let filenamezip = 'Not Available';
 
-            console.log('test' + JSON.stringify(job.returnvalue));
-            // If job is done and no error, status is Success
-            if (job.returnvalue) {
-                if (job.returnvalue.status === 'done') {
-                    statusfix = 'Sukses';
-                    filenamezip = job.returnvalue.zipFileName;  // If job is done, attach filename
-                } else if (job.returnvalue.error) {
-                    statusfix = 'Failed';
-                    errorMessage = job.returnvalue.error;  // Include error message if exists
-                }
-            } else {
-                if (job.isWaiting()) {
-                    statusfix = 'Pending';  // Job is waiting in the queue
-                } else {
-                    statusfix = 'Failed';
-                }
-            }
 
-            res.json({
-                success: true,
-                id: job.id,
-                Origin: job.data.origin,
-                Destination: job.data.destination,
-                FromDate: job.data.froms,
-                ToDate: job.data.thrus,
-                UserID: job.data.user_id,
-                TM: job.data.TM,
-                Status: statusfix,  // Return statusfix (Sukses, Failed, or Pending)
-                filenamezip: filenamezip,
-                errorMessage: errorMessage // Include error message if exists
-            });
-        } else {
-            res.status(404).send({success: false, message: 'Job not found.'});
+        const today = new Date();
+        const dateStr = today.toISOString().split("T")[0];
+
+        // Add the job to the queue
+        const job = await reportQueue.add({
+            type: 'dbonasum',
+            branch_id,
+            froms,
+            thrus,
+            user_id,
+            dateStr
+        });
+
+        const jsonData = {
+            branch_id: branch_id,
+            froms: froms,
+            thrus: thrus,
+            user_id: user_id,
+            user_session: user_session,
+            // estimatedDataCount: estimatedDataCount,
+            // estimatedTimeMinutes: estimatedTimeMinutes,
+            dateStr: dateStr,
+            branch: branch,
+        };
+
+        const clobJson = JSON.stringify(jsonData);
+
+        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+        const connection = await oracledb.getConnection(config);
+
+        const insertProcedure = `
+    BEGIN
+        DBCTC_V2.P_INS_LOG_MONITORING_EXPORT(
+            P_USER_LOGIN        => :user_name,
+            P_NAME_FILE         => :name_file,
+            P_DURATION          => :duration,
+            P_NAMA_MODUL        => :category,
+            P_TGL_SETTING       => :periode,
+            P_STATUS            => :status,
+            P_JOB_SERVER        => :job_server,
+            P_COUNT_DATA        => :datacount,
+            P_SETTING_PERPAGE   => :count_per_file,
+            P_TOTAL_FILE        => :total_file,
+            P_BRANCH            => :branch,
+            P_LOG_JSON         => :log_json
+        );
+    END;
+`;
+
+        const insertValues = {
+            user_name: user_id, // user_id sebagai USER_NAME
+            name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
+            duration: 0, // Estimasi waktu
+            category: "DBONASUM", // Kategori adalah TCO
+            periode: `${froms} - ${thrus}`, // Rentang periode
+            status: "Process", // Status awal adalah Pending
+            job_server: job.id, // ID job
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
+            branch: branch, // Ganti sesuai nama cabang yang sesuai
+            log_json: clobJson,
+        };
+        console.log("insert data DBONASUM :" +insertValues)
+
+        // Replace placeholders directly with bind parameters
+        await connection.execute(insertProcedure, insertValues);
+        await connection.commit();
+
+        const logFilePath = path.join(
+            __dirname,
+            "log_files",
+            `JNE_REPORT_DBONA_${job.id}.txt`
+        );
+        const logMessage = `
+            Job ID: ${job.id}
+            branch_id: ${branch_id}
+            From Date: ${froms}
+            To Date: ${thrus}
+            User ID: ${user_id}
+            Status: Pending
+            created_at: ${new Date()}
+        `;
+
+        if (!fs.existsSync(path.dirname(logFilePath))) {
+            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
+
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        res.redirect(redirectUrl);
     } catch (err) {
-        console.error('Error fetching job:', err);
-        res.status(500).send({success: false, message: 'Error fetching job.'});
-    }
-});
-app.get('/jobsdci/:id', async (req, res) => {
-    try {
-        const job = await reportQueueDCI.getJob(req.params.id);
-        if (job) {
-            let statusfix = 'Failed';  // Default status is Failed
-            let errorMessage = '';
-            let filenamezip = 'Not Available';
-
-            console.log('test' + JSON.stringify(job.returnvalue));
-            // If job is done and no error, status is Success
-            if (job.returnvalue) {
-                if (job.returnvalue.status === 'done') {
-                    statusfix = 'Sukses';
-                    filenamezip = job.returnvalue.zipFileName;  // If job is done, attach filename
-                } else if (job.returnvalue.error) {
-                    statusfix = 'Failed';
-                    errorMessage = job.returnvalue.error;  // Include error message if exists
-                }
-            } else {
-                if (job.isWaiting()) {
-                    statusfix = 'Pending';  // Job is waiting in the queue
-                } else {
-                    statusfix = 'Failed';
-                }
-            }
-
-            res.json({
-                success: true,
-                id: job.id,
-                Origin: job.data.origin,
-                Destination: job.data.destination,
-                FromDate: job.data.froms,
-                ToDate: job.data.thrus,
-                UserID: job.data.user_id,
-                TM: job.data.TM,
-                Status: statusfix,  // Return statusfix (Sukses, Failed, or Pending)
-                filenamezip: filenamezip,
-                errorMessage: errorMessage // Include error message if exists
-            });
-        } else {
-            res.status(404).send({success: false, message: 'Job not found.'});
-        }
-    } catch (err) {
-        console.error('Error fetching job:', err);
-        res.status(500).send({success: false, message: 'Error fetching job.'});
-    }
-});
-app.get('/jobsdco/:id', async (req, res) => {
-    try {
-        const job = await reportQueueDCO.getJob(req.params.id);
-        if (job) {
-            let statusfix = 'Failed';  // Default status is Failed
-            let errorMessage = '';
-            let filenamezip = 'Not Available';
-
-            console.log('test' + JSON.stringify(job.returnvalue));
-            // If job is done and no error, status is Success
-            if (job.returnvalue) {
-                if (job.returnvalue.status === 'done') {
-                    statusfix = 'Sukses';
-                    filenamezip = job.returnvalue.zipFileName;  // If job is done, attach filename
-                } else if (job.returnvalue.error) {
-                    statusfix = 'Failed';
-                    errorMessage = job.returnvalue.error;  // Include error message if exists
-                }
-            } else {
-                if (job.isWaiting()) {
-                    statusfix = 'Pending';  // Job is waiting in the queue
-                } else {
-                    statusfix = 'Failed';
-                }
-            }
-
-            res.json({
-                success: true,
-                id: job.id,
-                Origin: job.data.origin,
-                Destination: job.data.destination,
-                FromDate: job.data.froms,
-                ToDate: job.data.thrus,
-                UserID: job.data.user_id,
-                service: job.data.service,
-                Status: statusfix,  // Return statusfix (Sukses, Failed, or Pending)
-                filenamezip: filenamezip,
-                errorMessage: errorMessage // Include error message if exists
-            });
-        } else {
-            res.status(404).send({success: false, message: 'Job not found.'});
-        }
-    } catch (err) {
-        console.error('Error fetching job:', err);
-        res.status(500).send({success: false, message: 'Error fetching job.'});
+        console.error("Error adding job to queue:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while adding the job.",
+        });
     }
 });
 
@@ -6340,6 +6514,194 @@ app.get("/downloaddbo/:jobId", async (req, res) => {
         });
     }
 });
+app.get("/downloaddbona/:jobId", async (req, res) => {
+    const { jobId } = req.params; // Ambil jobId dari parameter URL
+    const category = "DBONA"; // Misalnya 'TCO', bisa disesuaikan sesuai kebutuhan
+
+    try {
+
+        // Koneksi ke database untuk mencari nama file berdasarkan jobId dan category
+        const connection = await oracledb.getConnection(config);
+        const query = `
+            SELECT NAME_FILE
+            FROM CMS_COST_TRANSIT_V2_LOG
+            WHERE ID_JOB_REDIS = :jobId
+              AND CATEGORY = :category
+        `;
+
+        const result = await connection.execute(query, {
+            jobId: jobId,
+            category: category,
+        });
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send({ success: false, message: "File not found in the database." });
+        }
+
+        const zipFileName = result.rows[0][0]; // Ambil nama file dari hasil query
+
+        // Tentukan path file zip
+        const filePath = path.join(zipFileName);
+
+        // Cek jika file zip sudah ada di direktori
+        fs.stat(filePath, async (err, stats) => {
+            if (err) {
+                return res
+                    .status(404)
+                    .send({ success: false, message: "File not found." });
+            }
+
+
+
+            let connection_download;
+            try {
+                // Establish a connection to the database
+                connection_download = await oracledb.getConnection(config);
+
+                // Call the stored procedure P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED
+                const result = await connection_download.execute(
+                    `BEGIN DBCTC_V2.P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED(:P_ID_REDIS, :P_NAME_FILE); END;`,
+                    {
+                        P_ID_REDIS: jobId, // Pass the jobId to the stored procedure
+                        P_NAME_FILE: zipFileName.split("\\").pop(), // Extract the file name from the full path
+                    }
+                );
+
+                // Commit the changes
+                await connection_download.commit();
+                console.log('Export updated to "Downloaded" for job ID:', jobId);
+            } catch (err) {
+                console.error('Error updating export process to "Downloaded":', err);
+            } finally {
+                // Ensure the connection is closed
+                if (connection_download) {
+                    await connection_download.close();
+                }
+            }
+            // Update status download ke 1 (unduhan selesai) dan status ke Done
+            // const updateQuery = `
+            //           UPDATE CMS_COST_TRANSIT_V2_LOG
+            //           SET DOWNLOAD = 1,
+            //               STATUS   = 'Downloaded'
+            //           WHERE ID_JOB_REDIS = :jobId
+            //       `;
+            // await connection.execute(updateQuery, {
+            //   jobId: jobId,
+            // });
+            // await connection.commit();
+
+            // Serve the file for download
+            res.download(filePath, path.basename(filePath), (downloadErr) => {
+                if (downloadErr) {
+                    return res
+                        .status(500)
+                        .send({ success: false, message: "Error downloading the file." });
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching job data or handling download:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while processing the download.",
+        });
+    }
+});
+app.get("/downloaddbonasum/:jobId", async (req, res) => {
+    const { jobId } = req.params; // Ambil jobId dari parameter URL
+    const category = "DBONASUM"; // Misalnya 'TCO', bisa disesuaikan sesuai kebutuhan
+
+    try {
+
+        // Koneksi ke database untuk mencari nama file berdasarkan jobId dan category
+        const connection = await oracledb.getConnection(config);
+        const query = `
+            SELECT NAME_FILE
+            FROM CMS_COST_TRANSIT_V2_LOG
+            WHERE ID_JOB_REDIS = :jobId
+              AND CATEGORY = :category
+        `;
+
+        const result = await connection.execute(query, {
+            jobId: jobId,
+            category: category,
+        });
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send({ success: false, message: "File not found in the database." });
+        }
+
+        const zipFileName = result.rows[0][0]; // Ambil nama file dari hasil query
+
+        // Tentukan path file zip
+        const filePath = path.join(zipFileName);
+
+        // Cek jika file zip sudah ada di direktori
+        fs.stat(filePath, async (err, stats) => {
+            if (err) {
+                return res
+                    .status(404)
+                    .send({ success: false, message: "File not found." });
+            }
+
+
+
+            let connection_download;
+            try {
+                // Establish a connection to the database
+                connection_download = await oracledb.getConnection(config);
+                // Call the stored procedure P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED
+                const result = await connection_download.execute(
+                    `BEGIN DBCTC_V2.P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED(:P_ID_REDIS, :P_NAME_FILE); END;`,
+                    {
+                        P_ID_REDIS: jobId, // Pass the jobId to the stored procedure
+                        P_NAME_FILE: zipFileName.split("\\").pop(), // Extract the file name from the full path
+                    }
+                );
+                // Commit the changes
+                await connection_download.commit();
+                console.log('Export updated to "Downloaded" for job ID:', jobId);
+            } catch (err) {
+                console.error('Error updating export process to "Downloaded":', err);
+            } finally {
+                // Ensure the connection is closed
+                if (connection_download) {
+                    await connection_download.close();
+                }
+            }
+            // Update status download ke 1 (unduhan selesai) dan status ke Done
+            // const updateQuery = `
+            //           UPDATE CMS_COST_TRANSIT_V2_LOG
+            //           SET DOWNLOAD = 1,
+            //               STATUS   = 'Downloaded'
+            //           WHERE ID_JOB_REDIS = :jobId
+            //       `;
+            // await connection.execute(updateQuery, {
+            //   jobId: jobId,
+            // });
+            // await connection.commit();
+
+            // Serve the file for download
+            res.download(filePath, path.basename(filePath), (downloadErr) => {
+                if (downloadErr) {
+                    return res
+                        .status(500)
+                        .send({ success: false, message: "Error downloading the file." });
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching job data or handling download:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while processing the download.",
+        });
+    }
+});
 
 app.use(express.static('public'));
 // Serve the progresstci.html when visiting the /progress URL
@@ -6377,644 +6739,43 @@ app.get('/getPendingJobs', async (req, res) => {
     }
 });
 
-
-app.get("/reruntco/:id", async (req, res) => {
-    try {
-        const { id } = req.params;  // Mengambil ID langsung dari parameter URL
-
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "ID is required to rerun the job.",
-            });
-        }
-
-        const connection = await oracledb.getConnection(config);
-
-        // Ambil log_json dari CMS_COST_TRANSIT_V2_LOG berdasarkan id
-        const result = await connection.execute(
-            `SELECT log_json FROM CMS_COST_TRANSIT_V2_LOG WHERE id = :id`,
-            [id]
-        );
-
-        console.log('result'+ result)
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Job not found with the provided ID.",
-            });
-        }
-
-        let logJson = result.rows[0][0];  // Ambil log_json dalam bentuk CLOB
-
-        console.log('log :', logJson);
-
-        // Jika CLOB, Anda perlu mengambil datanya dengan getData() atau menggunakan .toString()
-        if (logJson && logJson.getData) {
-            logJson = await new Promise((resolve, reject) => {
-                logJson.getData((err, data) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(data.toString());  // CLOB menjadi string
-                    }
-                });
-            });
-        }
-
-        console.log('logJson after getting data:', logJson);  // Cek apakah logJson sudah berisi data string
-
-        // Jika logJson adalah string, lakukan parsing
-        if (typeof logJson === 'string') {
-            logJson = JSON.parse(logJson);  // Jika berupa string, lakukan parsing
-        }
-
-        const { origin, destination, froms, thrus, user_id, user_session, estimatedDataCount, estimatedTimeMinutes, dateStr, branch_id } = logJson;  // Ganti parsedJson menjadi logJson
-
-        // Menambahkan job baru dengan data yang diambil dari log_json
-        const job = await reportQueue.add({
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            dateStr
-        });
-
-        const jsonData = {
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            user_session,
-            estimatedDataCount,
-            estimatedTimeMinutes,
-            dateStr,
-            branch_id,
-        };
-        const clobJson = JSON.stringify(jsonData);
-
-        // Hitung jumlah file yang akan dihasilkan
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
-        const updateQuery = `
-            UPDATE CMS_COST_TRANSIT_V2_LOG
-            SET
-                NAME_FILE = :name_file,
-                DURATION = :duration,
-                CATEGORY = :category,
-                PERIODE = :periode,
-                STATUS = :status,
-                DOWNLOAD = :download,
-                CREATED_AT = :created_at,
-                ID_JOB_REDIS = :id_job,
-                DATACOUNT = :datacount,
-                COUNT_PER_FILE = :count_per_file,
-                SUMMARY_FILE = :summary_file,
-                TOTAL_FILE = :total_file,
-                LOG_JSON = :log_json
-            WHERE ID = :id
-        `;
-
-        const updateValues = {
-            id: id,  // ID pekerjaan yang ingin diupdate
-            name_file: '',  // Kosongkan nama file terlebih dahulu
-            duration: estimatedTimeMinutes.toFixed(2),  // Estimasi waktu
-            category: 'TCO',  // Kategori adalah TCO
-            periode: `${froms} - ${thrus}`,  // Rentang periode
-            status: 'Process',  // Status untuk pekerjaan yang sedang diproses
-            download: 0,  // Belum diunduh
-            created_at: new Date(),  // Timestamp saat data dimasukkan
-            datacount: estimatedDataCount,  // Jumlah data yang diperkirakan
-            total_file: count_per_file,  // Total file yang akan dibuat
-            summary_file: '0',  // Status sementara untuk summary file
-            count_per_file: 50000,  // Jumlah data per file
-            log_json: clobJson,  // JSON yang berisi log pekerjaan
-            id_job: job.id
-        };
-
-        await connection.execute(updateQuery, updateValues);
-        await connection.commit();
-
-        // Setelah insert, membuat file log dan menulis log
-        const logFilePath = path.join(__dirname, "log_files", `JNE_REPORT_TCO_${job.id}.txt`);
-        const logMessage = `
-            Job ID: ${job.id}
-            Origin: ${origin}
-            Destination: ${destination}
-            From Date: ${froms}
-            To Date: ${thrus}
-            User ID: ${user_id}
-            Status: Pending
-            created_at: ${new Date()}
-        `;
-
-        // Membuat direktori jika belum ada
-        if (!fs.existsSync(path.dirname(logFilePath))) {
-            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-        }
-
-        // Menulis log ke file
-        fs.writeFileSync(logFilePath, logMessage, 'utf8');
-
-        // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
-        res.redirect(redirectUrl);
-
-    } catch (err) {
-        console.error("Error rerunning the job:", err);
-        res.status(500).send({
-            success: false,
-            message: "An error occurred while rerunning the job.",
-        });
-    }
-});
-app.get("/reruntci/:id", async (req, res) => {
-    try {
-        const { id } = req.params;  // Mengambil ID langsung dari parameter URL
-
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "ID is required to rerun the job.",
-            });
-        }
-
-        const connection = await oracledb.getConnection(config);
-
-        // Ambil log_json dari CMS_COST_TRANSIT_V2_LOG berdasarkan id
-        const result = await connection.execute(
-            `SELECT log_json FROM CMS_COST_TRANSIT_V2_LOG WHERE id = :id`,
-            [id]
-        );
-
-        console.log('result'+ result)
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Job not found with the provided ID.",
-            });
-        }
-
-        let logJson = result.rows[0][0];  // Ambil log_json dalam bentuk CLOB
-
-        console.log('log :', logJson);
-
-        // Jika CLOB, Anda perlu mengambil datanya dengan getData() atau menggunakan .toString()
-        if (logJson && logJson.getData) {
-            logJson = await new Promise((resolve, reject) => {
-                logJson.getData((err, data) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(data.toString());  // CLOB menjadi string
-                    }
-                });
-            });
-        }
-
-        console.log('logJson after getting data:', logJson);  // Cek apakah logJson sudah berisi data string
-
-        // Jika logJson adalah string, lakukan parsing
-        if (typeof logJson === 'string') {
-            logJson = JSON.parse(logJson);  // Jika berupa string, lakukan parsing
-        }
-
-        const { origin, destination, froms, thrus, user_id,TM, user_session, estimatedDataCount, estimatedTimeMinutes, dateStr, branch_id } = logJson;  // Ganti parsedJson menjadi logJson
-
-        // Menambahkan job baru dengan data yang diambil dari log_json
-        const job = await reportQueueTCI.add({
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            TM,
-            user_session,
-            dateStr
-        });
-
-        const jsonData = {
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            user_session,
-            estimatedDataCount,
-            estimatedTimeMinutes,
-            dateStr,
-            branch_id,
-        };
-        const clobJson = JSON.stringify(jsonData);
-
-        // Hitung jumlah file yang akan dihasilkan
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
-        const updateQuery = `
-            UPDATE CMS_COST_TRANSIT_V2_LOG
-            SET
-                NAME_FILE = :name_file,
-                DURATION = :duration,
-                CATEGORY = :category,
-                PERIODE = :periode,
-                STATUS = :status,
-                DOWNLOAD = :download,
-                CREATED_AT = :created_at,
-                ID_JOB_REDIS = :id_job,
-                DATACOUNT = :datacount,
-                COUNT_PER_FILE = :count_per_file,
-                SUMMARY_FILE = :summary_file,
-                TOTAL_FILE = :total_file,
-                LOG_JSON = :log_json
-            WHERE ID = :id
-        `;
-
-        const updateValues = {
-            id: id,  // ID pekerjaan yang ingin diupdate
-            name_file: '',  // Kosongkan nama file terlebih dahulu
-            duration: estimatedTimeMinutes,  // Estimasi waktu
-            category: 'TCI',  // Kategori adalah TCO
-            periode: `${froms} - ${thrus}`,  // Rentang periode
-            status: 'Process',  // Status untuk pekerjaan yang sedang diproses
-            download: 0,  // Belum diunduh
-            created_at: new Date(),  // Timestamp saat data dimasukkan
-            datacount: estimatedDataCount,  // Jumlah data yang diperkirakan
-            total_file: count_per_file,  // Total file yang akan dibuat
-            summary_file: '0',  // Status sementara untuk summary file
-            count_per_file: 50000,  // Jumlah data per file
-            log_json: clobJson,  // JSON yang berisi log pekerjaan
-            id_job: job.id
-        };
-
-        await connection.execute(updateQuery, updateValues);
-        await connection.commit();
-
-        // Setelah insert, membuat file log dan menulis log
-        const logFilePath = path.join(__dirname, "log_files", `JNE_REPORT_TCI_${job.id}.txt`);
-        const logMessage = `
-            Job ID: ${job.id}
-            Origin: ${origin}
-            Destination: ${destination}
-            From Date: ${froms}
-            To Date: ${thrus}
-            User ID: ${user_id}
-            Status: Pending
-            created_at: ${new Date()}
-        `;
-
-        // Membuat direktori jika belum ada
-        if (!fs.existsSync(path.dirname(logFilePath))) {
-            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-        }
-
-        // Menulis log ke file
-        fs.writeFileSync(logFilePath, logMessage, 'utf8');
-
-        // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
-        res.redirect(redirectUrl);
-
-    } catch (err) {
-        console.error("Error rerunning the job:", err);
-        res.status(500).send({
-            success: false,
-            message: "An error occurred while rerunning the job.",
-        });
-    }
-});
-app.get("/rerundci/:id", async (req, res) => {
-    try {
-        const { id } = req.params;  // Mengambil ID langsung dari parameter URL
-
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "ID is required to rerun the job.",
-            });
-        }
-
-        const connection = await oracledb.getConnection(config);
-
-        // Ambil log_json dari CMS_COST_TRANSIT_V2_LOG berdasarkan id
-        const result = await connection.execute(
-            `SELECT log_json FROM CMS_COST_TRANSIT_V2_LOG WHERE id = :id`,
-            [id]
-        );
-
-        console.log('result'+ result)
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Job not found with the provided ID.",
-            });
-        }
-
-        let logJson = result.rows[0][0];  // Ambil log_json dalam bentuk CLOB
-
-        console.log('log :', logJson);
-
-        // Jika CLOB, Anda perlu mengambil datanya dengan getData() atau menggunakan .toString()
-        if (logJson && logJson.getData) {
-            logJson = await new Promise((resolve, reject) => {
-                logJson.getData((err, data) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(data.toString());  // CLOB menjadi string
-                    }
-                });
-            });
-        }
-
-        console.log('logJson after getting data:', logJson);  // Cek apakah logJson sudah berisi data string
-
-        // Jika logJson adalah string, lakukan parsing
-        if (typeof logJson === 'string') {
-            logJson = JSON.parse(logJson);  // Jika berupa string, lakukan parsing
-        }
-
-        const { origin, destination, froms, thrus, user_id, service,user_session, estimatedDataCount, estimatedTimeMinutes, dateStr, branch_id } = logJson;  // Ganti parsedJson menjadi logJson
-
-        // Menambahkan job baru dengan data yang diambil dari log_json
-        const job = await reportQueueDCI.add({
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            service,
-            dateStr
-        });
-
-        const jsonData = {
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            user_session,
-            estimatedDataCount,
-            estimatedTimeMinutes,
-            dateStr,
-            branch_id,
-        };
-        const clobJson = JSON.stringify(jsonData);
-
-        // Hitung jumlah file yang akan dihasilkan
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
-        const updateQuery = `
-            UPDATE CMS_COST_TRANSIT_V2_LOG
-            SET
-                NAME_FILE = :name_file,
-                DURATION = :duration,
-                CATEGORY = :category,
-                PERIODE = :periode,
-                STATUS = :status,
-                DOWNLOAD = :download,
-                CREATED_AT = :created_at,
-                ID_JOB_REDIS = :id_job,
-                DATACOUNT = :datacount,
-                COUNT_PER_FILE = :count_per_file,
-                SUMMARY_FILE = :summary_file,
-                TOTAL_FILE = :total_file,
-                LOG_JSON = :log_json
-            WHERE ID = :id
-        `;
-
-        const updateValues = {
-            id: id,  // ID pekerjaan yang ingin diupdate
-            name_file: '',  // Kosongkan nama file terlebih dahulu
-            duration: estimatedTimeMinutes.toFixed(2),  // Estimasi waktu
-            category: 'DCI',  // Kategori adalah TCO
-            periode: `${froms} - ${thrus}`,  // Rentang periode
-            status: 'Process',  // Status untuk pekerjaan yang sedang diproses
-            download: 0,  // Belum diunduh
-            created_at: new Date(),  // Timestamp saat data dimasukkan
-            datacount: estimatedDataCount,  // Jumlah data yang diperkirakan
-            total_file: count_per_file,  // Total file yang akan dibuat
-            summary_file: '0',  // Status sementara untuk summary file
-            count_per_file: 50000,  // Jumlah data per file
-            log_json: clobJson,  // JSON yang berisi log pekerjaan
-            id_job: job.id
-        };
-
-        await connection.execute(updateQuery, updateValues);
-        await connection.commit();
-
-        // Setelah insert, membuat file log dan menulis log
-        const logFilePath = path.join(__dirname, "log_files", `JNE_REPORT_DCI_${job.id}.txt`);
-        const logMessage = `
-            Job ID: ${job.id}
-            Origin: ${origin}
-            Destination: ${destination}
-            From Date: ${froms}
-            To Date: ${thrus}
-            User ID: ${user_id}
-            Status: Pending
-            created_at: ${new Date()}
-        `;
-
-        // Membuat direktori jika belum ada
-        if (!fs.existsSync(path.dirname(logFilePath))) {
-            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-        }
-
-        // Menulis log ke file
-        fs.writeFileSync(logFilePath, logMessage, 'utf8');
-
-        // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
-        res.redirect(redirectUrl);
-
-    } catch (err) {
-        console.error("Error rerunning the job:", err);
-        res.status(500).send({
-            success: false,
-            message: "An error occurred while rerunning the job.",
-        });
-    }
-});
-app.get("/rerundco/:id", async (req, res) => {
-    try {
-        const { id } = req.params;  // Mengambil ID langsung dari parameter URL
-
-
-        if (!id) {
-            return res.status(400).json({
-                success: false,
-                message: "ID is required to rerun the job.",
-            });
-        }
-
-        const connection = await oracledb.getConnection(config);
-
-        // Ambil log_json dari CMS_COST_TRANSIT_V2_LOG berdasarkan id
-        const result = await connection.execute(
-            `SELECT log_json FROM CMS_COST_TRANSIT_V2_LOG WHERE id = :id`,
-            [id]
-        );
-
-        console.log('result'+ result)
-        if (result.rows.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Job not found with the provided ID.",
-            });
-        }
-
-        let logJson = result.rows[0][0];  // Ambil log_json dalam bentuk CLOB
-
-        console.log('log :', logJson);
-
-        // Jika CLOB, Anda perlu mengambil datanya dengan getData() atau menggunakan .toString()
-        if (logJson && logJson.getData) {
-            logJson = await new Promise((resolve, reject) => {
-                logJson.getData((err, data) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(data.toString());  // CLOB menjadi string
-                    }
-                });
-            });
-        }
-
-        console.log('logJson after getting data:', logJson);  // Cek apakah logJson sudah berisi data string
-
-        // Jika logJson adalah string, lakukan parsing
-        if (typeof logJson === 'string') {
-            logJson = JSON.parse(logJson);  // Jika berupa string, lakukan parsing
-        }
-
-        const { origin, destination, froms, thrus, user_id,service, user_session, estimatedDataCount, estimatedTimeMinutes, dateStr, branch_id } = logJson;  // Ganti parsedJson menjadi logJson
-
-        // Menambahkan job baru dengan data yang diambil dari log_json
-        const job = await reportQueueDCO.add({
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            service,
-            dateStr
-        });
-
-        const jsonData = {
-            origin,
-            destination,
-            froms,
-            thrus,
-            user_id,
-            user_session,
-            estimatedDataCount,
-            estimatedTimeMinutes,
-            dateStr,
-            branch_id,
-        };
-        const clobJson = JSON.stringify(jsonData);
-
-        // Hitung jumlah file yang akan dihasilkan
-        const count_per_file = Math.ceil(estimatedDataCount / 50000);
-        const updateQuery = `
-            UPDATE CMS_COST_TRANSIT_V2_LOG
-            SET
-                NAME_FILE = :name_file,
-                DURATION = :duration,
-                CATEGORY = :category,
-                PERIODE = :periode,
-                STATUS = :status,
-                DOWNLOAD = :download,
-                CREATED_AT = :created_at,
-                ID_JOB_REDIS = :id_job,
-                DATACOUNT = :datacount,
-                COUNT_PER_FILE = :count_per_file,
-                SUMMARY_FILE = :summary_file,
-                TOTAL_FILE = :total_file,
-                LOG_JSON = :log_json
-            WHERE ID = :id
-        `;
-
-        const updateValues = {
-            id: id,  // ID pekerjaan yang ingin diupdate
-            name_file: '',  // Kosongkan nama file terlebih dahulu
-            duration: estimatedTimeMinutes.toFixed(2),  // Estimasi waktu
-            category: 'DCO',  // Kategori adalah TCO
-            periode: `${froms} - ${thrus}`,  // Rentang periode
-            status: 'Process',  // Status untuk pekerjaan yang sedang diproses
-            download: 0,  // Belum diunduh
-            created_at: new Date(),  // Timestamp saat data dimasukkan
-            datacount: estimatedDataCount,  // Jumlah data yang diperkirakan
-            total_file: count_per_file,  // Total file yang akan dibuat
-            summary_file: '0',  // Status sementara untuk summary file
-            count_per_file: 50000,  // Jumlah data per file
-            log_json: clobJson,  // JSON yang berisi log pekerjaan
-            id_job: job.id
-        };
-
-        await connection.execute(updateQuery, updateValues);
-        await connection.commit();
-
-        // Setelah insert, membuat file log dan menulis log
-        const logFilePath = path.join(__dirname, "log_files", `JNE_REPORT_DCO_${job.id}.txt`);
-        const logMessage = `
-            Job ID: ${job.id}
-            Origin: ${origin}
-            Destination: ${destination}
-            From Date: ${froms}
-            To Date: ${thrus}
-            User ID: ${user_id}
-            Status: Pending
-            created_at: ${new Date()}
-        `;
-
-        // Membuat direktori jika belum ada
-        if (!fs.existsSync(path.dirname(logFilePath))) {
-            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-        }
-
-        // Menulis log ke file
-        fs.writeFileSync(logFilePath, logMessage, 'utf8');
-
-        // Redirect ke URL dengan user session
-        const redirectUrl = `http://10.8.2.48:8080/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
-        res.redirect(redirectUrl);
-
-    } catch (err) {
-        console.error("Error rerunning the job:", err);
-        res.status(500).send({
-            success: false,
-            message: "An error occurred while rerunning the job.",
-        });
-    }
-});
 app.get("/clean", async (req, res) => {
     try {
-        // Hapus semua job di reportQueue
-        await reportQueue.clean(0, 'completed'); // Hapus job yang sudah selesai
-        await reportQueue.clean(0, 'failed');    // Hapus job yang gagal
-        console.log('Semua job di reportQueue telah dihapus');
+        /*  clean() mengembalikan array job yang dihapus.
+            Kita tangkap untuk mengetahui berapa banyak yang ter‐delete */
+        const deletedCompleted = await reportQueue.clean(0, "completed");
+        const deletedFailed    = await reportQueue.clean(0, "failed");
 
-        // Hapus semua job di reportQueueTCI
-        await reportQueueTCI.clean(0, 'completed');
-        await reportQueueTCI.clean(0, 'failed');
-        console.log('Semua job di reportQueueTCI telah dihapus');
+        console.log(
+            `Job dihapus – completed: ${deletedCompleted.length}, failed: ${deletedFailed.length}`
+        );
 
-        // Hapus semua job di reportQueueDCI
-        await reportQueueDCI.clean(0, 'completed');
-        await reportQueueDCI.clean(0, 'failed');
-        console.log('Semua job di reportQueueDCI telah dihapus');
+        // Jalankan Garbage Collection bila tersedia
+        if (global.gc) {
+            global.gc();
+            console.log("Garbage collection telah dijalankan.");
+        } else {
+            console.warn("GC tidak tersedia. Jalankan Node dengan --expose-gc");
+        }
 
-        // Hapus semua job di reportQueueDCO
-        await reportQueueDCO.clean(0, 'completed');
-        await reportQueueDCO.clean(0, 'failed');
-        console.log('Semua job di reportQueueDCO telah dihapus');
+        // Respons sukses
+        return res.status(200).json({
+            message: "Semua job berhasil dihapus dan memory cache dibersihkan.",
+            stats: {
+                deleted: {
+                    completed: deletedCompleted.length,
+                    failed: deletedFailed.length,
+                },
+            },
+        });
     } catch (error) {
-        console.error('Terjadi kesalahan saat menghapus job:', error);
+        console.error("Terjadi kesalahan saat menghapus job:", error);
+        return res
+            .status(500)
+            .json({ error: "Terjadi kesalahan saat proses pembersihan." });
     }
 });
+
 // Start the server
 app.listen(port, () => {
     console.log(`Server running at http://0.0.0.0:${port}`);
