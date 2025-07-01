@@ -55,7 +55,6 @@ const config_jnebilltraining = {
     password: 'JNEBILL',
     connectString: '10.8.2.19:1522/JNEBILL'  // Host, port, dan service name
 };
-// Membuat Job Queue menggunakan Bull
 const reportQueue = new Bull('reportQueue', {
     redis: {host: '127.0.0.1', port: 6379},
 
@@ -68,6 +67,34 @@ const reportQueue2 = new Bull('reportQueue2', {
     removeOnComplete: true
 });
 const reportQueue3 = new Bull('reportQueue3', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue4 = new Bull('reportQueue4', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue5 = new Bull('reportQueue5', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue6 = new Bull('reportQueue6', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue7 = new Bull('reportQueue7', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue8 = new Bull('reportQueue8', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue9 = new Bull('reportQueue9', {
+    redis: { host: '127.0.0.1', port: 6379 },
+    removeOnComplete: true
+});
+const reportQueue10 = new Bull('reportQueue10', {
     redis: { host: '127.0.0.1', port: 6379 },
     removeOnComplete: true
 });
@@ -87,6 +114,16 @@ Sentry.init({
     sendDefaultPii: true,
 });
 setQueues([new BullAdapter(reportQueue)]);
+setQueues([new BullAdapter(reportQueue2)]);
+setQueues([new BullAdapter(reportQueue3)]);
+setQueues([new BullAdapter(reportQueue4)]);
+setQueues([new BullAdapter(reportQueue5)]);
+setQueues([new BullAdapter(reportQueue6)]);
+setQueues([new BullAdapter(reportQueue7)]);
+setQueues([new BullAdapter(reportQueue8)]);
+setQueues([new BullAdapter(reportQueue9)]);
+setQueues([new BullAdapter(reportQueue10)]);
+
 
 function logErrorToFile(jobId, origin, destination, userId, errorMessage) {
     const logFilePath = path.join(__dirname, 'error_logs.txt');
@@ -214,8 +251,18 @@ const processJob = async (job) => {
         console.log(`Processing Job ID: ${job.id}`);
 
         // Tentukan fungsi yang digunakan berdasarkan nama queue
-
-        if (job.queue.name === 'reportQueue' || job.queue.name === 'reportQueue2' || job.queue.name === 'reportQueue3') {
+        if (
+            job.queue.name === 'reportQueue' ||
+            job.queue.name === 'reportQueue2' ||
+            job.queue.name === 'reportQueue3' ||
+            job.queue.name === 'reportQueue4' ||
+            job.queue.name === 'reportQueue5' ||
+            job.queue.name === 'reportQueue6' ||
+            job.queue.name === 'reportQueue7' ||
+            job.queue.name === 'reportQueue8' ||
+            job.queue.name === 'reportQueue9' ||
+            job.queue.name === 'reportQueue10'
+        ) {
             const { type } = job.data;
             if(type === 'tco'){
                 await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
@@ -1460,11 +1507,17 @@ const processPendingJobs = async () => {
     }
 };
 
-// Tentukan bagaimana job akan diproses dalam queue
 reportQueue.process(async (job) => processJob(job));
 reportQueue2.process(async (job) => processJob(job));
 reportQueue3.process(async (job) => processJob(job));
-// Menggunakan Promise untuk estimasi jumlah data
+reportQueue4.process(async (job) => processJob(job));
+reportQueue5.process(async (job) => processJob(job));
+reportQueue6.process(async (job) => processJob(job));
+reportQueue7.process(async (job) => processJob(job));
+reportQueue8.process(async (job) => processJob(job));
+reportQueue9.process(async (job) => processJob(job));
+reportQueue10.process(async (job) => processJob(job));
+
 async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
     return new Promise((resolve, reject) => {
         let connection;
@@ -2972,7 +3025,7 @@ async function fetchDataAndExportToExcelDCIbackup({ origin, destination, froms, 
     });
 }
 
-async function fetchDataAndExportToExcelDCIfix({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
+async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -4306,15 +4359,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
     });
 }
 
-/**
- * ---------------------------------------------------------------------------
- *  FETCH & EXPORT  ▸  DBONASUM   (1 workbook, 3 sheets)
- * ---------------------------------------------------------------------------
- *  • Sheet 1 : data dengan COST_OPS ≠ NULL  &  non-INT
- *  • Sheet 2 : data dengan COST_OPS  IS NULL
- *  • Sheet 3 : data INTL (SERVICES_CODE LIKE '%INT%')
- * ---------------------------------------------------------------------------
- */
+
 async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -4399,9 +4444,55 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             ];
             [2, 4, 5, 6, 7, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
 
+            rowIndex += 2;
+            worksheet.getRow(rowIndex++).values = ['Penjualan Internasional'];
+            worksheet.getRow(rowIndex++).values = [
+                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight', 'Tipe', 'Amount'
+            ];
+
+            const summaryIntl = await connection.execute(`
+                SELECT
+                    SERVICES_CODE AS SERVICES_CODE4,
+                    SUM(QTY) AS SUM_QTY4,
+                    CURRENCY AS CURRENCY4,
+                    SUM(WEIGHT) AS SUM_WEIGHT4,
+                    COUNT(CNOTE_NO) AS COUNT_CNOTE4,
+                    SUM(AMOUNT) AS AMOUNT4,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
+                  AND COST_OPS IS NOT NULL
+                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
+                  AND SERVICES_CODE LIKE '%INT%'
+                  AND SERVICES_CODE NOT LIKE '%TRC%'
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY
+            `, { branch: branch_id, date1: froms, date2: thrus });
+
+            summaryIntl.rows = summaryIntl.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[6], row[5]
+            ]);
+
+            summaryIntl.rows.forEach(row => {
+                const r = worksheet.getRow(rowIndex++);
+                r.values = row;
+                [3, 4, 5, 7].forEach(col => r.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalIntl = calculateTotal(summaryIntl.rows, [2, 3, 4, 6]);
+            const totalRowIntl = worksheet.getRow(rowIndex++);
+            totalRowIntl.values = [
+                '', 'TOTAL', totalIntl[0], totalIntl[1], totalIntl[2], '', totalIntl[3]
+            ];
+            [3, 4, 5, 7].forEach(col => totalRowIntl.getCell(col).numFmt = '#,##0');
+
             // === TABEL SUMMARY NO OPS ===
             rowIndex += 2;
-            worksheet.getRow(rowIndex++).values = ['Biaya Operasional Non NA'];
+            worksheet.getRow(rowIndex++).values = ['Biaya Operasional NA'];
             worksheet.getRow(rowIndex++).values = [
                 'Currency', 'Services Code', 'Awb', 'Qty', 'Weight',
                 'Amount', 'Tipe', 'Currency Rate'
@@ -4450,54 +4541,6 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             ];
             [3,4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
 
-            // === TABEL SUMMARY INTL ===
-            rowIndex += 2;
-            worksheet.getRow(rowIndex++).values = ['Penjualan Internasional'];
-            worksheet.getRow(rowIndex++).values = [
-                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight', 'Tipe', 'Amount'
-            ];
-
-            const summaryIntl = await connection.execute(`
-                SELECT
-                    SERVICES_CODE AS SERVICES_CODE4,
-                    SUM(QTY) AS SUM_QTY4,
-                    CURRENCY AS CURRENCY4,
-                    SUM(WEIGHT) AS SUM_WEIGHT4,
-                    COUNT(CNOTE_NO) AS COUNT_CNOTE4,
-                    SUM(AMOUNT) AS AMOUNT4,
-                    CASE
-                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
-                        ELSE 'EXP'
-                        END TIPE
-                FROM CMS_COST_DELIVERY_V2
-                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
-                  AND COST_OPS IS NOT NULL
-                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
-                  AND SERVICES_CODE LIKE '%INT%'
-                  AND SERVICES_CODE NOT LIKE '%TRC%'
-                  AND CNOTE_NO NOT LIKE 'RT%'
-                  AND CNOTE_NO NOT LIKE 'FW%'
-                GROUP BY SERVICES_CODE, CURRENCY
-            `, { branch: branch_id, date1: froms, date2: thrus });
-
-            summaryIntl.rows = summaryIntl.rows.map(row => [
-                row[2], row[0], row[4], row[1], row[3], row[6], row[5]
-            ]);
-
-            summaryIntl.rows.forEach(row => {
-                const r = worksheet.getRow(rowIndex++);
-                r.values = row;
-                [3, 4, 5, 7].forEach(col => r.getCell(col).numFmt = '#,##0');
-            });
-
-            const totalIntl = calculateTotal(summaryIntl.rows, [2, 3, 4, 6]);
-            const totalRowIntl = worksheet.getRow(rowIndex++);
-            totalRowIntl.values = [
-                '', 'TOTAL', totalIntl[0], totalIntl[1], totalIntl[2], '', totalIntl[3]
-            ];
-            [3, 4, 5, 7].forEach(col => totalRowIntl.getCell(col).numFmt = '#,##0');
-
-            // Simpan file'
 
             const dateNow = new Date();
             const dateString = dateNow.toISOString().split('T')[0];
@@ -4530,26 +4573,55 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
         }
     });
 }
-
 const getQueueToAddJob = async (branch_id) => {
-    if (branch_id === 'CGK000') {
-        // Jika branch_id adalah CGK000, masukkan ke queue3
-        return reportQueue3;
-    }
-    // Mengambil jumlah pekerjaan yang sedang berjalan pada masing-masing queue
-    const activeJobs1 = await reportQueue.getJobs(['waiting', 'active']);
-    const activeJobs2 = await reportQueue2.getJobs(['waiting', 'active']);
-    const activeJobs3 = await reportQueue3.getJobs(['waiting', 'active']);
+    let selectedQueue;
+    let activeJobs1, activeJobs2, activeJobs3, activeJobs4, activeJobs5, activeJobs6, activeJobs7, activeJobs8, activeJobs9, activeJobs10;
 
-    // Menentukan queue dengan pekerjaan paling sedikit
-    if (activeJobs1.length <= activeJobs2.length && activeJobs1.length <= activeJobs3.length) {
-        return reportQueue;
-    } else if (activeJobs2.length <= activeJobs1.length && activeJobs2.length <= activeJobs3.length) {
-        return reportQueue2;
+    if (branch_id === 'CGK000') {
+        // Jika branch_id adalah CGK000, gunakan queue1, queue2, queue3
+        activeJobs1 = await reportQueue.getJobs(['waiting', 'active']);
+        activeJobs2 = await reportQueue2.getJobs(['waiting', 'active']);
+        activeJobs3 = await reportQueue3.getJobs(['waiting', 'active']);
+
+        // Menentukan queue dengan pekerjaan paling sedikit
+        if (activeJobs1.length <= activeJobs2.length && activeJobs1.length <= activeJobs3.length) {
+            selectedQueue = reportQueue;
+        } else if (activeJobs2.length <= activeJobs1.length && activeJobs2.length <= activeJobs3.length) {
+            selectedQueue = reportQueue2;
+        } else {
+            selectedQueue = reportQueue3;
+        }
     } else {
-        return reportQueue3;
+        activeJobs4 = await reportQueue4.getJobs(['waiting', 'active']);
+        activeJobs5 = await reportQueue5.getJobs(['waiting', 'active']);
+        activeJobs6 = await reportQueue6.getJobs(['waiting', 'active']);
+        activeJobs7 = await reportQueue7.getJobs(['waiting', 'active']);
+        activeJobs8 = await reportQueue8.getJobs(['waiting', 'active']);
+        activeJobs9 = await reportQueue9.getJobs(['waiting', 'active']);
+        activeJobs10 = await reportQueue10.getJobs(['waiting', 'active']);
+
+        // Menentukan queue dengan pekerjaan paling sedikit
+        if (activeJobs4.length <= activeJobs5.length && activeJobs4.length <= activeJobs6.length && activeJobs4.length <= activeJobs7.length && activeJobs4.length <= activeJobs8.length && activeJobs4.length <= activeJobs9.length && activeJobs4.length <= activeJobs10.length) {
+            selectedQueue = reportQueue4;
+        } else if (activeJobs5.length <= activeJobs4.length && activeJobs5.length <= activeJobs6.length && activeJobs5.length <= activeJobs7.length && activeJobs5.length <= activeJobs8.length && activeJobs5.length <= activeJobs9.length && activeJobs5.length <= activeJobs10.length) {
+            selectedQueue = reportQueue5;
+        } else if (activeJobs6.length <= activeJobs4.length && activeJobs6.length <= activeJobs5.length && activeJobs6.length <= activeJobs7.length && activeJobs6.length <= activeJobs8.length && activeJobs6.length <= activeJobs9.length && activeJobs6.length <= activeJobs10.length) {
+            selectedQueue = reportQueue6;
+        } else if (activeJobs7.length <= activeJobs4.length && activeJobs7.length <= activeJobs5.length && activeJobs7.length <= activeJobs6.length && activeJobs7.length <= activeJobs8.length && activeJobs7.length <= activeJobs9.length && activeJobs7.length <= activeJobs10.length) {
+            selectedQueue = reportQueue7;
+        } else if (activeJobs8.length <= activeJobs4.length && activeJobs8.length <= activeJobs5.length && activeJobs8.length <= activeJobs6.length && activeJobs8.length <= activeJobs7.length && activeJobs8.length <= activeJobs9.length && activeJobs8.length <= activeJobs10.length) {
+            selectedQueue = reportQueue8;
+        } else if (activeJobs9.length <= activeJobs4.length && activeJobs9.length <= activeJobs5.length && activeJobs9.length <= activeJobs6.length && activeJobs9.length <= activeJobs7.length && activeJobs9.length <= activeJobs8.length && activeJobs9.length <= activeJobs10.length) {
+            selectedQueue = reportQueue9;
+        } else {
+            selectedQueue = reportQueue10;
+        }
     }
+
+    console.log("Selected Queue:", selectedQueue);  // Menambahkan log untuk melihat queue yang dipilih
+    return selectedQueue;
 };
+
 // Define API endpoint with query parameters
 app.get("/getreporttco", async (req, res) => {
     try {
