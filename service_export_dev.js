@@ -293,14 +293,14 @@ const processJob = async (job) => {
 
                         const connections = await oracledb.getConnection(config);
                         const estimateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET
-                            START_PROCESS = SYSDATE,
-                            DURATION   = :duration,
-                            DATACOUNT  = :datacount,
-                            TOTAL_FILE = :total_file
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
+                        `;
                         const estimateValues = {
                             duration: estimatedTimeMinutes, // Add the duration
                             datacount: estimatedDataCount,        // Add the data count
@@ -339,14 +339,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -432,14 +432,14 @@ const processJob = async (job) => {
 
                         const connections = await oracledb.getConnection(config);
                         const estimateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET
-                            START_PROCESS = SYSDATE,
-                            DURATION   = :duration,
-                            DATACOUNT  = :datacount,
-                            TOTAL_FILE = :total_file
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
+                        `;
                         const estimateValues = {
                             duration: estimatedTimeMinutes, // Add the duration
                             datacount: estimatedDataCount,        // Add the data count
@@ -478,14 +478,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -568,14 +568,14 @@ const processJob = async (job) => {
 
                         const connections = await oracledb.getConnection(config);
                         const estimateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET
-                            START_PROCESS = SYSDATE,
-                            DURATION   = :duration,
-                            DATACOUNT  = :datacount,
-                            TOTAL_FILE = :total_file
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                        `;
                         const estimateValues = {
                             duration: estimatedTimeMinutes, // Add the duration
                             datacount: estimatedDataCount,        // Add the data count
@@ -615,14 +615,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -707,14 +707,14 @@ const processJob = async (job) => {
 
                         const connections = await oracledb.getConnection(config);
                         const estimateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET
-                            START_PROCESS = SYSDATE,
-                            DURATION   = :duration,
-                            DATACOUNT  = :datacount,
-                            TOTAL_FILE = :total_file
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                        `;
                         const estimateValues = {
                             duration: estimatedTimeMinutes, // Add the duration
                             datacount: estimatedDataCount,        // Add the data count
@@ -752,14 +752,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -902,14 +902,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1030,14 +1030,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1118,14 +1118,14 @@ const processJob = async (job) => {
 
                         const connections = await oracledb.getConnection(config);
                         const estimateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET
-                            START_PROCESS = SYSDATE,
-                            DURATION   = :duration,
-                            DATACOUNT  = :datacount,
-                            TOTAL_FILE = :total_file
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
+                        `;
                         const estimateValues = {
                             duration: estimatedTimeMinutes, // Add the duration
                             datacount: estimatedDataCount,        // Add the data count
@@ -1161,14 +1161,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1215,7 +1215,6 @@ const processJob = async (job) => {
                         };
                     }
                 });
-
             }else if(type === 'dbona') {
                 await Sentry.startSpan({name: 'Process Report DBONA Job' + job.id, jobId: job.id}, async (span) => {
                     const { branch_id, froms, thrus, user_id, dateStr, jobId} = job.data;
@@ -1291,14 +1290,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1359,38 +1358,38 @@ const processJob = async (job) => {
                         // Capture the start time
                         const startTime = Date.now();
 
-                        const  estimatedDataCount = await estimateDataCountDBONASUM({
-                            branch_id,
-                            froms,
-                            thrus,
-                            user_id
-                        });
+                        // const  estimatedDataCount = await estimateDataCountDBONASUM({
+                        //     branch_id,
+                        //     froms,
+                        //     thrus,
+                        //     user_id
+                        // });
 
-                        console.log('estimasi : '+estimatedDataCount)
+                        console.log('estimasi : '+ job.id);
 
                         // Calculate the estimated time based on the benchmark
                         const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
-                        const estimatedTimeMinutes =
-                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                        // const estimatedTimeMinutes =
+                        //     (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
 
                         const today = new Date();
                         const dateStr = today.toISOString().split("T")[0];
-                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+                        // const count_per_file = Math.ceil(estimatedDataCount / 1000000);
 
                         const connections = await oracledb.getConnection(config);
                         const estimateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET
-                            START_PROCESS = SYSDATE,
-                            DURATION   = :duration,
-                            DATACOUNT  = :datacount,
-                            TOTAL_FILE = :total_file
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
+                        `;
                         const estimateValues = {
-                            duration: estimatedTimeMinutes, // Add the duration
-                            datacount: estimatedDataCount,        // Add the data count
-                            total_file: count_per_file, // Add the total file count
+                            duration: '1', // Add the duration
+                            datacount: '1',        // Add the data count
+                            total_file: '1', // Add the total file count
                             jobId: job.id  // The job ID that we are processing
                         };
                         await connections.execute(estimateQuery, estimateValues);
@@ -1420,15 +1419,17 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                        UPDATE CMS_COST_TRANSIT_V2_LOG
-                        SET DOWNLOAD   = 0,
-                            STATUS     = 'Zipped',
-                            NAME_FILE  = :filename,
-                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                            TRANSIT_V2_LOG_FLAG_DELETE = 'N',
-                            SUMMARY_FILE = '1'
-                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
-                    `;
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N',
+                                SUMMARY_FILE = '1',
+                                DATACOUNT  = '1',
+                                TOTAL_FILE = '1'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
+                        `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1465,7 +1466,127 @@ const processJob = async (job) => {
                         await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
                             // Log the error details to file
-                            logErrorToFileDBONASUM(job.id,  branch_id, currency,services_code, user_id, error.message);
+                            logErrorToFileDBONASUM(job.id,  branch_id,  user_id, error.message);
+
+                        });
+                        Sentry.captureException(error);
+
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'mp') {
+                await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
+
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+
+                    try {
+                        const estimatedDataCount = await estimateDataCountMP({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id
+                        });
+
+                        const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / 1000000);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'MP'
+                        `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes,
+                            datacount: estimatedDataCount,
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+                        // Capture the start time
+                        const startTime = Date.now();
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelMP({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'MP'
+                        `;
+
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
+
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+
+                            // Log the error details to file
+                            logErrorToFile(job.id, origin, destination, user_id, error.message);
 
                         });
                         Sentry.captureException(error);
@@ -2044,42 +2165,57 @@ async function estimateDataCountDBONA({  branch_id, froms, thrus, user_id }) {
         });
     });
 }
-async function estimateDataCountDBONASUM({  branch_id, froms, thrus, user_id }) {
+
+async function estimateDataCountMP({origin, destination, froms, thrus, user_id}) {
     return new Promise((resolve, reject) => {
-        oracledb.getConnection(config, (err, connection) => {
-            if (err) {
-                return reject('Error connecting to database: ' + err.message);
-            }
-
-            let whereClause = "WHERE 1=1 ";
-            const bindParams = {};
-
-
-            if (branch_id !== '0') {
-                //     like SUBSTR(BRANCH_ID,1,3)
-                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-                bindParams.branch_id = branch_id ;
-            }
-
-            if (froms !== '0' && thrus !== '0') {
-                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
-                bindParams.froms = froms;
-                bindParams.thrus = thrus;
-            }
-            const sql = `SELECT COUNT(*) AS DATA_COUNT FROM CMS_COST_DELIVERY_V2 ${whereClause} and CUST_NA = 'Y' AND SUBSTR (CNOTE_NO, 1, 2) NOT IN ('FW', 'RT')`;
-            connection.execute(sql, bindParams, (err, result) => {
-                connection.close();
+        let connection;
+        try {
+            oracledb.getConnection(config, (err, conn) => {
                 if (err) {
-                    reject('Error executing query: ' + err.message);
+                    reject('Error connecting to database: ' + err.message);
                 } else {
-                    // result.rows[0][0] adalah count(*) hasil query
-                    resolve(result.rows.length > 0 ? result.rows[0][0] : 0);
+                    connection = conn;
+                    let whereClause = "WHERE 1 = 1";
+                    const bindParams = {};
+                    if (origin !== '0') {
+                        whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
+                        bindParams.origin = origin + '%';
+                    }
+                    if (destination !== '0') {
+                        whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
+                        bindParams.destination = destination + '%';
+                    }
+
+                    if (froms !== '0' && thrus !== '0') {
+                        whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                        bindParams.froms = froms;
+                        bindParams.thrus = thrus;
+                    }
+
+                    // Filter khusus marketplace
+                    whereClause += ` AND CUST_ID IN ('11666700', '80561600', '80561601', '80514305')`;
+
+                    // Final query
+                    const sql = `
+                        SELECT COUNT(*) AS DATA_COUNT
+                        FROM CMS_COST_TRANSIT_V2
+                                 ${whereClause}
+                    `;
+
+                    connection.execute(sql, bindParams, (err, result) => {
+                        if (err) {
+                            reject('Error executing query: ' + err.message);
+                        } else {
+                            resolve(result.rows.length > 0 ? result.rows[0][0] : 0);
+                        }
+                    });
                 }
             });
-        });
+        } catch (err) {
+            reject('Error: ' + err.message);
+        }
     });
 }
-
 
 // not use func
 async function buatZip(folderPath, zipFileName) {
@@ -2551,7 +2687,7 @@ async function fetchDataAndExportToExcelTCI({
                                SUM(HANDLING_FEE) AS HANDLING_FEE,
                                SUM(OTHER_FEE) AS OTHER_FEE,
                                SUM(NVL(TRANSIT_FEE, 0) + NVL(HANDLING_FEE, 0) + NVL(OTHER_FEE, 0)) AS TOTAL,
-                               
+
                                TO_CHAR(SYSDATE  , 'DD/MM/YYYY')                                                            AS DOWNLOAD_DATE,
                                TO_CHAR(SYSDATE  , 'HH:MI:SS AM')                                                            AS TIME_DOWNLOAD_DATE
                         FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
@@ -2640,10 +2776,10 @@ async function fetchDataAndExportToExcelTCI({
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-          UPDATE CMS_COST_TRANSIT_V2_LOG
-          SET SUMMARY_FILE = :summary_file
-          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-        `;
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -2924,30 +3060,30 @@ async function fetchDataAndExportToExcelDCIbackup({ origin, destination, froms, 
             }
 
             const result = await connection.execute(`
-        SELECT '''' || CNOTE_NO AS CNOTE_NO,
-               TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS CNOTE_DATE,
-               ORIGIN,
-               DESTINATION,
-               ZONA_DESTINATION,
-               SERVICES_CODE,
-               NVL(QTY, 0) QTY,
-               CASE WHEN WEIGHT = 0 THEN 0
-                    WHEN WEIGHT < 1 THEN 1
-                    WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
-                    ELSE FLOOR(WEIGHT) END WEIGHT,
-               NVL(AMOUNT, 0) AMOUNT,
-               MANIFEST_NO,
-               TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
-               NVL(DELIVERY, 0) DELIVERY,
-               NVL(DELIVERY_SPS, 0) DELIVERY_SPS,
-               NVL(TRANSIT, 0) BIAYA_TRANSIT,
-               NVL(LINEHAUL_FIRST, 0) LINEHAUL_FIRST,
-               NVL(LINEHAUL_NEXT, 0) LINEHAUL_NEXT
-        FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                SELECT '''' || CNOTE_NO AS CNOTE_NO,
+                       TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS CNOTE_DATE,
+                       ORIGIN,
+                       DESTINATION,
+                       ZONA_DESTINATION,
+                       SERVICES_CODE,
+                       NVL(QTY, 0) QTY,
+                       CASE WHEN WEIGHT = 0 THEN 0
+                            WHEN WEIGHT < 1 THEN 1
+                            WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                            ELSE FLOOR(WEIGHT) END WEIGHT,
+                       NVL(AMOUNT, 0) AMOUNT,
+                       MANIFEST_NO,
+                       TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
+                       NVL(DELIVERY, 0) DELIVERY,
+                       NVL(DELIVERY_SPS, 0) DELIVERY_SPS,
+                       NVL(TRANSIT, 0) BIAYA_TRANSIT,
+                       NVL(LINEHAUL_FIRST, 0) LINEHAUL_FIRST,
+                       NVL(LINEHAUL_NEXT, 0) LINEHAUL_NEXT
+                FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
         AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
         AND CNOTE_NO NOT LIKE 'RT%'
         AND CNOTE_NO NOT LIKE 'FW%'
-      `, bindParams);
+            `, bindParams);
 
             const rows = result.rows;
             const chunkSize = 1000000;
@@ -2991,10 +3127,10 @@ async function fetchDataAndExportToExcelDCIbackup({ origin, destination, froms, 
                 await workbook.commit();
 
                 const updateQuery = `
-          UPDATE CMS_COST_TRANSIT_V2_LOG
-          SET SUMMARY_FILE = :summary_file
-          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-        `;
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -3059,38 +3195,38 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
-        SELECT '''' || CNOTE_NO AS CNOTE_NO,
-               TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY') AS CNOTE_DATE,
-               TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM') AS TIME_CNOTE_DATE,
-               ORIGIN,
-               DESTINATION,
-               ZONA_DESTINATION,
-               SERVICES_CODE,
-               NVL(QTY, 0) AS QTY,
-               TO_CHAR(
-                       CASE
-                           WHEN WEIGHT = 0 THEN 0
-                           WHEN WEIGHT < 1 THEN 1
-                           WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
-                           ELSE FLOOR(WEIGHT)
-                           END,
-                       '999G999G999',
-                       'NLS_NUMERIC_CHARACTERS = ''.,'''
-               ) AS WEIGHT,
-               NVL(AMOUNT, 0) AS AMOUNT,
-               MANIFEST_NO,
-               TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
-               TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE,
-               NVL(DELIVERY, 0) AS DELIVERY,
-               NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
-               NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
-               NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
-               NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
-        FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                SELECT '''' || CNOTE_NO AS CNOTE_NO,
+                       TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY') AS CNOTE_DATE,
+                       TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM') AS TIME_CNOTE_DATE,
+                       ORIGIN,
+                       DESTINATION,
+                       ZONA_DESTINATION,
+                       SERVICES_CODE,
+                       NVL(QTY, 0) AS QTY,
+                       TO_CHAR(
+                               CASE
+                                   WHEN WEIGHT = 0 THEN 0
+                                   WHEN WEIGHT < 1 THEN 1
+                                   WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                                   ELSE FLOOR(WEIGHT)
+                                   END,
+                               '999G999G999',
+                               'NLS_NUMERIC_CHARACTERS = ''.,'''
+                       ) AS WEIGHT,
+                       NVL(AMOUNT, 0) AS AMOUNT,
+                       MANIFEST_NO,
+                       TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
+                       TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE,
+                       NVL(DELIVERY, 0) AS DELIVERY,
+                       NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
+                       NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
+                       NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
+                       NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
+                FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
         AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
         AND CNOTE_NO NOT LIKE 'RT%'
         AND CNOTE_NO NOT LIKE 'FW%'
-      `, bindParams);
+            `, bindParams);
 
             console.log('Query selesai, memproses data...');
             const rows = result.rows;
@@ -3139,10 +3275,10 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-          UPDATE CMS_COST_TRANSIT_V2_LOG
-          SET SUMMARY_FILE = :summary_file
-          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-        `;
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -3301,10 +3437,10 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-          UPDATE CMS_COST_TRANSIT_V2_LOG
-          SET SUMMARY_FILE = :summary_file
-          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-        `;
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -4360,10 +4496,27 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
 }
 
 
+
 async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
+
+            // Kondisi untuk branch_id
+            if (branch_id !== '0') {
+                whereClause += " AND SUBSTR(BRANCH_ID, 1, 3) = :branch_id ";
+                bindParams.branch_id = branch_id;
+            }
+            // Kondisi untuk periode tanggal
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += "AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')";
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
+
             function calculateTotal(rows, indices) {
                 const totals = new Array(indices.length).fill(0);
                 for (const row of rows) {
@@ -4395,7 +4548,6 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 'Services Code', 'QTY', 'Currency', 'Weight', 'Awb',
                 'Amount', 'Nett Amount', 'Cost Ops', 'Currency Rate', 'Tipe', 'Biaya Ops'
             ];
-
             const summaryOps = await connection.execute(`
                 SELECT
                     SERVICES_CODE,
@@ -4421,14 +4573,21 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                         ELSE (SUM(AMOUNT)/1.011) * 0.1
                         END BIAYA_OPS_NEW
                 FROM CMS_COST_DELIVERY_v2
-                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
-                  AND COST_OPS IS NOT NULL
-                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
+                         ${whereClause}
+                    AND COST_OPS IS NOT NULL
+                     AND SERVICES_CODE NOT IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
                   AND SERVICES_CODE NOT LIKE '%INT%'
                   AND CNOTE_NO NOT LIKE 'RT%'
                   AND CNOTE_NO NOT LIKE 'FW%'
                 GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
-            `, { branch: branch_id, date1: froms, date2: thrus });
+            `, bindParams);
 
             summaryOps.rows.forEach(row => {
                 const r = worksheet.getRow(rowIndex++);
@@ -4444,51 +4603,63 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             ];
             [2, 4, 5, 6, 7, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
 
-            rowIndex += 2;
-            worksheet.getRow(rowIndex++).values = ['Penjualan Internasional'];
-            worksheet.getRow(rowIndex++).values = [
-                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight', 'Tipe', 'Amount'
-            ];
-
-            const summaryIntl = await connection.execute(`
+            // jtr
+            rowIndex += 1;
+            const summaryOpsJTR = await connection.execute(`
                 SELECT
-                    SERVICES_CODE AS SERVICES_CODE4,
-                    SUM(QTY) AS SUM_QTY4,
-                    CURRENCY AS CURRENCY4,
-                    SUM(WEIGHT) AS SUM_WEIGHT4,
-                    COUNT(CNOTE_NO) AS COUNT_CNOTE4,
-                    SUM(AMOUNT) AS AMOUNT4,
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    SUM(AMOUNT)/1.011 AS NETT_AMOUNT,
+                    SUM(COST_OPS),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
                     CASE
-                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
                         ELSE 'EXP'
-                        END TIPE
-                FROM CMS_COST_DELIVERY_V2
-                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
-                  AND COST_OPS IS NOT NULL
-                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
-                  AND SERVICES_CODE LIKE '%INT%'
-                  AND SERVICES_CODE NOT LIKE '%TRC%'
+                        END TIPE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23') THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE LIKE '%TRC%' THEN 0
+                        ELSE (SUM(AMOUNT)/1.011) * 0.1
+                        END BIAYA_OPS_NEW
+                FROM CMS_COST_DELIVERY_v2
+                         ${whereClause}
+                    AND COST_OPS IS NOT NULL
+                        AND SERVICES_CODE IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
+                  AND SERVICES_CODE NOT LIKE '%INT%'
                   AND CNOTE_NO NOT LIKE 'RT%'
                   AND CNOTE_NO NOT LIKE 'FW%'
-                GROUP BY SERVICES_CODE, CURRENCY
-            `, { branch: branch_id, date1: froms, date2: thrus });
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, bindParams);
 
-            summaryIntl.rows = summaryIntl.rows.map(row => [
-                row[2], row[0], row[4], row[1], row[3], row[6], row[5]
-            ]);
-
-            summaryIntl.rows.forEach(row => {
-                const r = worksheet.getRow(rowIndex++);
-                r.values = row;
-                [3, 4, 5, 7].forEach(col => r.getCell(col).numFmt = '#,##0');
+            summaryOpsJTR.rows.forEach(row => {
+                const rjtr = worksheet.getRow(rowIndex++);
+                rjtr.values = row;
+                [2, 4, 5, 6, 7, 11].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
             });
 
-            const totalIntl = calculateTotal(summaryIntl.rows, [2, 3, 4, 6]);
-            const totalRowIntl = worksheet.getRow(rowIndex++);
-            totalRowIntl.values = [
-                '', 'TOTAL', totalIntl[0], totalIntl[1], totalIntl[2], '', totalIntl[3]
+            const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 7, 10]);
+            const totalRowOpsJTR = worksheet.getRow(rowIndex++);
+            totalRowOpsJTR.values = [
+                'TOTAL', totalOpsJTR[0], '', totalOpsJTR[1], totalOpsJTR[2],
+                totalOpsJTR[3], totalOpsJTR[4], totalOpsJTR[5], '', '', totalOpsJTR[6]
             ];
-            [3, 4, 5, 7].forEach(col => totalRowIntl.getCell(col).numFmt = '#,##0');
+            [2, 4, 5, 6, 7, 11].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
+
 
             // === TABEL SUMMARY NO OPS ===
             rowIndex += 2;
@@ -4515,13 +4686,21 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                         ELSE 'EXP'
                         END TIPE
                 FROM CMS_COST_DELIVERY_V2
-                WHERE SUBSTR(BRANCH_ID,1,3) = :branch
-                  AND COST_OPS IS NULL
-                  AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:date1, 'DD-MON-YYYY') AND TO_DATE(:date2, 'DD-MON-YYYY')
+                         ${whereClause}
+                    AND COST_OPS IS NULL
+                     AND SERVICES_CODE NOT IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
+                                  AND SERVICES_CODE NOT LIKE '%INT%'
                   AND CNOTE_NO NOT LIKE 'RT%'
                   AND CNOTE_NO NOT LIKE 'FW%'
                 GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
-            `, { branch: branch_id, date1: froms, date2: thrus });
+            `, bindParams);
 
             summaryNoOps.rows = summaryNoOps.rows.map(row => [
                 row[2], row[0], row[4], row[1], row[3], row[5], row[7], row[6]
@@ -4540,6 +4719,107 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
 
             ];
             [3,4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
+
+            // NO JTR
+            rowIndex += 1;
+
+            const summaryNoOpsJTR = await connection.execute(`
+                SELECT
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CARGO23','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                         ${whereClause}
+                    AND COST_OPS IS NULL
+                                  AND SERVICES_CODE NOT LIKE '%INT%'
+                     AND SERVICES_CODE  IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, bindParams);
+
+            summaryNoOpsJTR.rows = summaryNoOpsJTR.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[5], row[7], row[6]
+            ]);
+
+            summaryNoOpsJTR.rows.forEach(row => {
+                const rnojtr = worksheet.getRow(rowIndex++);
+                rnojtr.values = row;
+                [3,4, 5, 6].forEach(col => rnojtr.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalNoOpsJTR = calculateTotal(summaryNoOpsJTR.rows, [2,3, 4, 5]);
+            const totalRowNoOpsJTR = worksheet.getRow(rowIndex++);
+            totalRowNoOpsJTR.values = [
+                '', 'TOTAL', totalNoOpsJTR[0], totalNoOpsJTR[1], totalNoOpsJTR[2], totalNoOpsJTR[3], '', ''
+
+            ];
+            [3,4, 5, 6].forEach(col => totalRowNoOpsJTR.getCell(col).numFmt = '#,##0');
+
+
+            rowIndex += 2;
+            worksheet.getRow(rowIndex++).values = ['Penjualan Internasional'];
+            worksheet.getRow(rowIndex++).values = [
+                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight', 'Tipe', 'Amount'
+            ];
+
+            const summaryIntl = await connection.execute(`
+                SELECT
+                    SERVICES_CODE AS SERVICES_CODE4,
+                    SUM(QTY) AS SUM_QTY4,
+                    CURRENCY AS CURRENCY4,
+                    SUM(WEIGHT) AS SUM_WEIGHT4,
+                    COUNT(CNOTE_NO) AS COUNT_CNOTE4,
+                    SUM(AMOUNT) AS AMOUNT4,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                         ${whereClause}
+                    AND COST_OPS IS NOT NULL
+                  AND SERVICES_CODE LIKE '%INT%'
+                  AND SERVICES_CODE NOT LIKE '%TRC%'
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY
+            `, bindParams);
+
+            summaryIntl.rows = summaryIntl.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[6], row[5]
+            ]);
+
+            summaryIntl.rows.forEach(row => {
+                const r = worksheet.getRow(rowIndex++);
+                r.values = row;
+                [3, 4, 5, 7].forEach(col => r.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalIntl = calculateTotal(summaryIntl.rows, [2, 3, 4, 6]);
+            const totalRowIntl = worksheet.getRow(rowIndex++);
+            totalRowIntl.values = [
+                '', 'TOTAL', totalIntl[0], totalIntl[1], totalIntl[2], '', totalIntl[3]
+            ];
+            [3, 4, 5, 7].forEach(col => totalRowIntl.getCell(col).numFmt = '#,##0');
+
 
 
             const dateNow = new Date();
@@ -4573,6 +4853,165 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
         }
     });
 }
+async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, user_id, dateStr, jobId }) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            console.log('Menghubungkan ke database...');
+            connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
+
+            let whereClause = `WHERE 1 = 1`;
+            const bindParams = {};
+
+            if (origin !== '0') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
+                bindParams.origin = origin + '%';
+            }
+
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
+                bindParams.destination = destination + '%';
+            }
+
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
+
+            // Filter marketplace
+            whereClause += ` AND CUST_ID IN ('11666700','80561600','80561601','80514305')`;
+
+            console.log('Menjalankan query data...');
+            const result = await connection.execute(`
+                SELECT
+                    '''' || AWB_NO AS AWB,
+                    TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
+                    SERVICES_CODE,
+                    CNOTE_WEIGHT,
+                    ORIGIN,
+                    DESTINATION,
+                    CUST_ID,
+                    CASE
+                        WHEN CUST_ID = '80514305' THEN 'SHOPEE'
+                        WHEN CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
+                        ELSE 'OTHER'
+                        END AS MARKETPLACE,
+                    '''' || BAG_NO AS BAG_NO,
+                    PRORATED_WEIGHT,
+                    OUTBOND_MANIFEST_NO,
+                    TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE,
+                    OUTBOND_MANIFEST_ROUTE,
+                    TRANSIT_MANIFEST_NO,
+                    TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY') AS TRANSIT_MANIFEST_DATE,
+                    TRANSIT_MANIFEST_ROUTE,
+                    MODA,
+                    MODA_TYPE
+                FROM CMS_COST_TRANSIT_V2
+                         ${whereClause}
+            `, bindParams);
+
+            console.log('Query selesai, memproses data...');
+
+            const rows = result.rows;
+            const chunkSize = 1000000;
+            const chunks = [];
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
+            }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
+
+            console.log('Memulai proses ekspor Excel...');
+            let no = 1;
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `BiayaAngkut_Marketplace_Report_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Marketplace Report');
+
+                // Header sesuai dengan label tampilan website
+                const headers = [
+                    "NO",
+                    "CONNOTE NO",
+                    "CONNOTE DATE",
+                    "SERVICES CODE",
+                    "CONNOTE WEIGHT",
+                    "ORIGIN",
+                    "DESTINATION",
+                    "CUST ID",
+                    "MARKETPLACE",
+                    "BAG NO",
+                    "PRORATED WEIGHT",
+                    "OUTBOND MANIFEST NO",
+                    "OUTBOND MANIFEST DATE",
+                    "OUTBOND MANIFEST ROUTE",
+                    "TRANSIT MANIFEST NO",
+                    "TRANSIT MANIFEST DATE",
+                    "TRANSIT MANIFEST ROUTE",
+                    "MODA",
+                    "MODA TYPE"
+                ];
+
+                // Metadata laporan
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
+
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
+
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'MP'
+                });
+                await connection.commit();
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
+            }
+
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `BiayaAngkut_Marketplace_Report_${user_id}_${dateString}_${timeString}.zip`);
+            const output = fs.createWriteStream(zipFileName);
+            const archive = archiver('zip', { zlib: { level: 1 } });
+            archive.pipe(output);
+            archive.directory(folderPath, false);
+            await archive.finalize();
+
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
+
+            resolve({ zipFileName, dataCount: rows.length });
+        } catch (err) {
+            console.error('Terjadi kesalahan:', err);
+            reject(err);
+        } finally {
+            if (connection) await connection.close();
+        }
+    });
+}
+
 const getQueueToAddJob = async (branch_id) => {
     let selectedQueue;
     let activeJobs1, activeJobs2, activeJobs3, activeJobs4, activeJobs5, activeJobs6, activeJobs7, activeJobs8, activeJobs9, activeJobs10;
@@ -4582,7 +5021,6 @@ const getQueueToAddJob = async (branch_id) => {
         activeJobs1 = await reportQueue.getJobs(['waiting', 'active']);
         activeJobs2 = await reportQueue2.getJobs(['waiting', 'active']);
         activeJobs3 = await reportQueue3.getJobs(['waiting', 'active']);
-
         // Menentukan queue dengan pekerjaan paling sedikit
         if (activeJobs1.length <= activeJobs2.length && activeJobs1.length <= activeJobs3.length) {
             selectedQueue = reportQueue;
@@ -4618,7 +5056,7 @@ const getQueueToAddJob = async (branch_id) => {
         }
     }
 
-    console.log("Selected Queue:", selectedQueue);  // Menambahkan log untuk melihat queue yang dipilih
+    // console.log("Selected Queue:", selectedQueue);  // Menambahkan log untuk melihat queue yang dipilih
     return selectedQueue;
 };
 
@@ -4802,8 +5240,10 @@ app.get("/getreporttci", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'tci',
             origin,
             destination,
@@ -4966,8 +5406,10 @@ app.get("/getreportdci", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'dci',
             origin,
             destination,
@@ -5155,8 +5597,10 @@ app.get("/getreportdco", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'dco',
             origin,
             destination,
@@ -5300,8 +5744,10 @@ app.get("/getreportca", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'ca',
             branch,
             froms,
@@ -5444,8 +5890,10 @@ app.get("/getreportru", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'ru',
             origin_awal,
             destination,
@@ -5575,8 +6023,10 @@ app.get("/getreportdbo", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'dbo',
             branch_id,
             froms,
@@ -5699,8 +6149,10 @@ app.get("/getreportdbona", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'dbona',
             branch_id,
             froms,
@@ -5823,8 +6275,10 @@ app.get("/getreportdbonasum", async (req, res) => {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
 
-        // Add the job to the queue
-        const job = await reportQueue.add({
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
             type: 'dbonasum',
             branch_id,
             froms,
@@ -5913,6 +6367,123 @@ app.get("/getreportdbonasum", async (req, res) => {
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while adding the job.",
+        });
+    }
+});
+app.get("/getreportmp", async (req, res) => {
+    try {
+        const {
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            branch_id,
+            user_session,
+        } = req.query;
+
+        if (
+            !origin ||
+            !destination ||
+            !froms ||
+            !thrus ||
+            !user_id ||
+            !branch_id ||
+            !user_session
+        ) {
+            return res
+                .status(400)
+                .json({ success: false, message: "Missing required parameters" });
+        }
+
+        const today = new Date();
+        const dateStr = today.toISOString().split("T")[0];
+
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
+            // Add the job to the queue
+            type: 'mp',
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            dateStr
+        });
+
+        const jsonData = {
+            origin: origin,
+            destination: destination,
+            froms: froms,
+            thrus: thrus,
+            user_id: user_id,
+            user_session: user_session,
+            dateStr: dateStr,
+            branch_id: branch_id,
+        };
+        const clobJson = JSON.stringify(jsonData);
+
+        const connection = await oracledb.getConnection(config);
+
+        const insertProcedure = `
+            BEGIN
+                DBCTC_V2.P_INS_LOG_MONITORING_EXPORT(
+                    P_USER_LOGIN        => :user_name,
+                    P_NAME_FILE         => :name_file,
+                    P_DURATION          => :duration,
+                    P_NAMA_MODUL        => :category,
+                    P_TGL_SETTING       => :periode,
+                    P_STATUS            => :status,
+                    P_JOB_SERVER        => :job_server,
+                    P_COUNT_DATA        => :datacount,
+                    P_SETTING_PERPAGE   => :count_per_file,
+                    P_TOTAL_FILE        => :total_file,
+                    P_BRANCH            => :branch,
+                    P_LOG_JSON         => :log_json
+                );
+            END;
+        `;
+
+        const insertValues = {
+            user_name: user_id, // user_id sebagai USER_NAME
+            name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
+            duration: 0, // Estimasi waktu
+            category: "MP", // Kategori adalah TCO
+            periode: `${froms} - ${thrus}`, // Rentang periode
+            status: "Process", // Status awal adalah Pending
+            job_server: job.id, // ID job
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
+            branch: branch_id, // Ganti sesuai nama cabang yang sesuai
+            log_json: clobJson,
+        };
+
+        console.log("Insert data MP :" +insertValues)
+
+        await connection.execute(insertProcedure, insertValues);
+        await connection.commit();
+
+        const logFilePath = path.join(
+            __dirname,
+            "log_files",
+            `JNE_REPORT_MP_${job.id}.txt`
+        );
+
+        if (!fs.existsSync(path.dirname(logFilePath))) {
+            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+        }
+
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:67:${user_session}::NO::P78_USER:${user_id}`;
+        res.redirect(redirectUrl);
+
+    } catch (err) {
+        console.error("Error adding job to queue:", err + " " + err.stack + err.line);
         res.status(500).send({
             success: false,
             message: "An error occurred while adding the job.",
@@ -6756,6 +7327,87 @@ app.get("/downloaddbonasum/:jobId", async (req, res) => {
             //   jobId: jobId,
             // });
             // await connection.commit();
+
+            // Serve the file for download
+            res.download(filePath, path.basename(filePath), (downloadErr) => {
+                if (downloadErr) {
+                    return res
+                        .status(500)
+                        .send({ success: false, message: "Error downloading the file." });
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching job data or handling download:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while processing the download.",
+        });
+    }
+});
+app.get("/downloadmp/:jobId", async (req, res) => {
+    const { jobId } = req.params; // Ambil jobId dari parameter URL
+    const category = "MP"; // Misalnya 'TCO', bisa disesuaikan sesuai kebutuhan
+
+    try {
+        // Koneksi ke database untuk mencari nama file berdasarkan jobId dan category
+        const connection = await oracledb.getConnection(config);
+        const query = `
+            SELECT NAME_FILE
+            FROM CMS_COST_TRANSIT_V2_LOG
+            WHERE ID_JOB_REDIS = :jobId
+              AND CATEGORY = :category
+        `;
+
+        const result = await connection.execute(query, {
+            jobId: jobId,
+            category: category,
+        });
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send({ success: false, message: "File not found in the database." });
+        }
+
+        const zipFileName = result.rows[0][0]; // Ambil nama file dari hasil query
+
+        // Tentukan path file zip
+        const filePath = path.join(zipFileName);
+
+        // Cek jika file zip sudah ada di direktori
+        fs.stat(filePath, async (err, stats) => {
+            if (err) {
+                return res
+                    .status(404)
+                    .send({ success: false, message: "File not found." });
+            }
+
+            let connection_download;
+            try {
+                // Establish a connection to the database
+                connection_download = await oracledb.getConnection(config);
+
+                // Call the stored procedure P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED
+                const result = await connection_download.execute(
+                    `BEGIN DBCTC_V2.P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED(:P_ID_REDIS, :P_NAME_FILE); END;`,
+                    {
+                        P_ID_REDIS: jobId, // Pass the jobId to the stored procedure
+                        P_NAME_FILE: zipFileName.split("\\").pop(), // Extract the file name from the full path
+                    }
+                );
+
+                // Commit the changes
+                await connection_download.commit();
+                console.log('Export updated to "Downloaded" for job ID:', jobId);
+            } catch (err) {
+                console.error('Error updating export process to "Downloaded":', err);
+            } finally {
+                // Ensure the connection is closed
+                if (connection_download) {
+                    await connection_download.close();
+                }
+            }
 
             // Serve the file for download
             res.download(filePath, path.basename(filePath), (downloadErr) => {

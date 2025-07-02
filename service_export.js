@@ -1215,7 +1215,6 @@ const processJob = async (job) => {
                         };
                     }
                 });
-
             }else if(type === 'dbona') {
                 await Sentry.startSpan({name: 'Process Report DBONA Job' + job.id, jobId: job.id}, async (span) => {
                     const { branch_id, froms, thrus, user_id, dateStr, jobId} = job.data;
@@ -1428,8 +1427,8 @@ const processJob = async (job) => {
                                 TRANSIT_V2_LOG_FLAG_DELETE = 'N',
                                 SUMMARY_FILE = '1',
                                 DATACOUNT  = '1',
-                                TOTAL_FILE = '1',
-                                WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
+                                TOTAL_FILE = '1'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONASUM'
                         `;
 
                         // Prepare the update values
@@ -1467,7 +1466,7 @@ const processJob = async (job) => {
                         await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
 
                             // Log the error details to file
-                            logErrorToFileDBONASUM(job.id,  branch_id, currency,services_code, user_id, error.message);
+                            logErrorToFileDBONASUM(job.id,  branch_id,  user_id, error.message);
 
                         });
                         Sentry.captureException(error);
@@ -2200,7 +2199,7 @@ async function estimateDataCountMP({origin, destination, froms, thrus, user_id})
                     const sql = `
                         SELECT COUNT(*) AS DATA_COUNT
                         FROM CMS_COST_TRANSIT_V2
-                        ${whereClause}
+                                 ${whereClause}
                     `;
 
                     connection.execute(sql, bindParams, (err, result) => {
@@ -4497,6 +4496,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
 }
 
 
+
 async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -4548,8 +4548,6 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 'Services Code', 'QTY', 'Currency', 'Weight', 'Awb',
                 'Amount', 'Nett Amount', 'Cost Ops', 'Currency Rate', 'Tipe', 'Biaya Ops'
             ];
-
-
             const summaryOps = await connection.execute(`
                 SELECT
                     SERVICES_CODE,
@@ -4577,6 +4575,14 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 FROM CMS_COST_DELIVERY_v2
                          ${whereClause}
                     AND COST_OPS IS NOT NULL
+                     AND SERVICES_CODE NOT IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
                   AND SERVICES_CODE NOT LIKE '%INT%'
                   AND CNOTE_NO NOT LIKE 'RT%'
                   AND CNOTE_NO NOT LIKE 'FW%'
@@ -4596,6 +4602,178 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 totalOps[3], totalOps[4], totalOps[5], '', '', totalOps[6]
             ];
             [2, 4, 5, 6, 7, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
+
+            // jtr
+            rowIndex += 1;
+            const summaryOpsJTR = await connection.execute(`
+                SELECT
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    SUM(AMOUNT)/1.011 AS NETT_AMOUNT,
+                    SUM(COST_OPS),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
+                        ELSE 'EXP'
+                        END TIPE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23') THEN (SUM(AMOUNT)/1.011) * 0.05
+                        WHEN SERVICES_CODE LIKE '%TRC%' THEN 0
+                        ELSE (SUM(AMOUNT)/1.011) * 0.1
+                        END BIAYA_OPS_NEW
+                FROM CMS_COST_DELIVERY_v2
+                         ${whereClause}
+                    AND COST_OPS IS NOT NULL
+                        AND SERVICES_CODE IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
+                  AND SERVICES_CODE NOT LIKE '%INT%'
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, bindParams);
+
+            summaryOpsJTR.rows.forEach(row => {
+                const rjtr = worksheet.getRow(rowIndex++);
+                rjtr.values = row;
+                [2, 4, 5, 6, 7, 11].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 7, 10]);
+            const totalRowOpsJTR = worksheet.getRow(rowIndex++);
+            totalRowOpsJTR.values = [
+                'TOTAL', totalOpsJTR[0], '', totalOpsJTR[1], totalOpsJTR[2],
+                totalOpsJTR[3], totalOpsJTR[4], totalOpsJTR[5], '', '', totalOpsJTR[6]
+            ];
+            [2, 4, 5, 6, 7, 11].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
+
+
+            // === TABEL SUMMARY NO OPS ===
+            rowIndex += 2;
+            worksheet.getRow(rowIndex++).values = ['Biaya Operasional NA'];
+            worksheet.getRow(rowIndex++).values = [
+                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight',
+                'Amount', 'Tipe', 'Currency Rate'
+            ];
+
+            const summaryNoOps = await connection.execute(`
+                SELECT
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CARGO23','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                         ${whereClause}
+                    AND COST_OPS IS NULL
+                     AND SERVICES_CODE NOT IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
+                                  AND SERVICES_CODE NOT LIKE '%INT%'
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, bindParams);
+
+            summaryNoOps.rows = summaryNoOps.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[5], row[7], row[6]
+            ]);
+
+            summaryNoOps.rows.forEach(row => {
+                const r = worksheet.getRow(rowIndex++);
+                r.values = row;
+                [3,4, 5, 6].forEach(col => r.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalNoOps = calculateTotal(summaryNoOps.rows, [2,3, 4, 5]);
+            const totalRowNoOps = worksheet.getRow(rowIndex++);
+            totalRowNoOps.values = [
+                '', 'TOTAL', totalNoOps[0], totalNoOps[1], totalNoOps[2], totalNoOps[3], '', ''
+
+            ];
+            [3,4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
+
+            // NO JTR
+            rowIndex += 1;
+
+            const summaryNoOpsJTR = await connection.execute(`
+                SELECT
+                    SERVICES_CODE,
+                    SUM(QTY),
+                    CURRENCY,
+                    SUM(WEIGHT),
+                    COUNT(CNOTE_NO),
+                    SUM(AMOUNT),
+                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                    CASE
+                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                        WHEN SERVICES_CODE IN ('CRGMB24','CARGO23','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
+                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
+                        ELSE 'EXP'
+                        END TIPE
+                FROM CMS_COST_DELIVERY_V2
+                         ${whereClause}
+                    AND COST_OPS IS NULL
+                                  AND SERVICES_CODE NOT LIKE '%INT%'
+                     AND SERVICES_CODE  IN ('JTR<130',
+                               'JTR>130',
+                               'JTR23',
+                               'CTCJTR23',
+                               'CTCTRC11',
+                               'CTCJTR5_23',
+                               'JTR5_23',
+                               'CRGTK')
+                  AND CNOTE_NO NOT LIKE 'RT%'
+                  AND CNOTE_NO NOT LIKE 'FW%'
+                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
+            `, bindParams);
+
+            summaryNoOpsJTR.rows = summaryNoOpsJTR.rows.map(row => [
+                row[2], row[0], row[4], row[1], row[3], row[5], row[7], row[6]
+            ]);
+
+            summaryNoOpsJTR.rows.forEach(row => {
+                const rnojtr = worksheet.getRow(rowIndex++);
+                rnojtr.values = row;
+                [3,4, 5, 6].forEach(col => rnojtr.getCell(col).numFmt = '#,##0');
+            });
+
+            const totalNoOpsJTR = calculateTotal(summaryNoOpsJTR.rows, [2,3, 4, 5]);
+            const totalRowNoOpsJTR = worksheet.getRow(rowIndex++);
+            totalRowNoOpsJTR.values = [
+                '', 'TOTAL', totalNoOpsJTR[0], totalNoOpsJTR[1], totalNoOpsJTR[2], totalNoOpsJTR[3], '', ''
+
+            ];
+            [3,4, 5, 6].forEach(col => totalRowNoOpsJTR.getCell(col).numFmt = '#,##0');
+
 
             rowIndex += 2;
             worksheet.getRow(rowIndex++).values = ['Penjualan Internasional'];
@@ -4642,55 +4820,6 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             ];
             [3, 4, 5, 7].forEach(col => totalRowIntl.getCell(col).numFmt = '#,##0');
 
-            // === TABEL SUMMARY NO OPS ===
-            rowIndex += 2;
-            worksheet.getRow(rowIndex++).values = ['Biaya Operasional NA'];
-            worksheet.getRow(rowIndex++).values = [
-                'Currency', 'Services Code', 'Awb', 'Qty', 'Weight',
-                'Amount', 'Tipe', 'Currency Rate'
-            ];
-
-            const summaryNoOps = await connection.execute(`
-                SELECT
-                    SERVICES_CODE,
-                    SUM(QTY),
-                    CURRENCY,
-                    SUM(WEIGHT),
-                    COUNT(CNOTE_NO),
-                    SUM(AMOUNT),
-                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
-                    CASE
-                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
-                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
-                        WHEN SERVICES_CODE IN ('CRGMB24','CARGO23','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
-                        WHEN SERVICES_CODE LIKE 'INTL%' THEN 'INTL'
-                        ELSE 'EXP'
-                        END TIPE
-                FROM CMS_COST_DELIVERY_V2
-                         ${whereClause}
-                    AND COST_OPS IS NULL
-                  AND CNOTE_NO NOT LIKE 'RT%'
-                  AND CNOTE_NO NOT LIKE 'FW%'
-                GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
-            `, bindParams);
-
-            summaryNoOps.rows = summaryNoOps.rows.map(row => [
-                row[2], row[0], row[4], row[1], row[3], row[5], row[7], row[6]
-            ]);
-
-            summaryNoOps.rows.forEach(row => {
-                const r = worksheet.getRow(rowIndex++);
-                r.values = row;
-                [3,4, 5, 6].forEach(col => r.getCell(col).numFmt = '#,##0');
-            });
-
-            const totalNoOps = calculateTotal(summaryNoOps.rows, [2,3, 4, 5]);
-            const totalRowNoOps = worksheet.getRow(rowIndex++);
-            totalRowNoOps.values = [
-                '', 'TOTAL', totalNoOps[0], totalNoOps[1], totalNoOps[2], totalNoOps[3], '', ''
-
-            ];
-            [3,4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
 
 
             const dateNow = new Date();
@@ -4724,7 +4853,6 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
         }
     });
 }
-
 async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -4757,7 +4885,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
-                SELECT 
+                SELECT
                     '''' || AWB_NO AS AWB,
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
                     SERVICES_CODE,
@@ -4765,11 +4893,11 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     ORIGIN,
                     DESTINATION,
                     CUST_ID,
-                    CASE 
+                    CASE
                         WHEN CUST_ID = '80514305' THEN 'SHOPEE'
                         WHEN CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
                         ELSE 'OTHER'
-                    END AS MARKETPLACE,
+                        END AS MARKETPLACE,
                     '''' || BAG_NO AS BAG_NO,
                     PRORATED_WEIGHT,
                     OUTBOND_MANIFEST_NO,
@@ -4781,7 +4909,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     MODA,
                     MODA_TYPE
                 FROM CMS_COST_TRANSIT_V2
-                ${whereClause}
+                         ${whereClause}
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -4883,7 +5011,6 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
         }
     });
 }
-
 
 const getQueueToAddJob = async (branch_id) => {
     let selectedQueue;
@@ -6246,7 +6373,6 @@ app.get("/getreportdbonasum", async (req, res) => {
         });
     }
 });
-
 app.get("/getreportmp", async (req, res) => {
     try {
         const {
@@ -7219,7 +7345,6 @@ app.get("/downloaddbonasum/:jobId", async (req, res) => {
         });
     }
 });
-
 app.get("/downloadmp/:jobId", async (req, res) => {
     const { jobId } = req.params; // Ambil jobId dari parameter URL
     const category = "MP"; // Misalnya 'TCO', bisa disesuaikan sesuai kebutuhan
@@ -7229,9 +7354,9 @@ app.get("/downloadmp/:jobId", async (req, res) => {
         const connection = await oracledb.getConnection(config);
         const query = `
             SELECT NAME_FILE
-                FROM CMS_COST_TRANSIT_V2_LOG
+            FROM CMS_COST_TRANSIT_V2_LOG
             WHERE ID_JOB_REDIS = :jobId
-                AND CATEGORY = :category
+              AND CATEGORY = :category
         `;
 
         const result = await connection.execute(query, {
