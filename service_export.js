@@ -1557,7 +1557,7 @@ const processJob = async (job) => {
                                 NAME_FILE  = :filename,
                                 UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                                 TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'MP'
                         `;
 
                         // Prepare the update values
@@ -4834,7 +4834,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             await workbook.commit();
 
             // Buat file zip
-            const zipFileName = path.join(__dirname, 'file_download', `MarketplaceReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, 'file_download', `BiayaAngkut_Marketplace_Report_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -7171,6 +7171,88 @@ app.get("/downloaddbonasum/:jobId", async (req, res) => {
             //   jobId: jobId,
             // });
             // await connection.commit();
+
+            // Serve the file for download
+            res.download(filePath, path.basename(filePath), (downloadErr) => {
+                if (downloadErr) {
+                    return res
+                        .status(500)
+                        .send({ success: false, message: "Error downloading the file." });
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching job data or handling download:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while processing the download.",
+        });
+    }
+});
+
+app.get("/downloadmp/:jobId", async (req, res) => {
+    const { jobId } = req.params; // Ambil jobId dari parameter URL
+    const category = "MP"; // Misalnya 'TCO', bisa disesuaikan sesuai kebutuhan
+
+    try {
+        // Koneksi ke database untuk mencari nama file berdasarkan jobId dan category
+        const connection = await oracledb.getConnection(config);
+        const query = `
+            SELECT NAME_FILE
+                FROM CMS_COST_TRANSIT_V2_LOG
+            WHERE ID_JOB_REDIS = :jobId
+                AND CATEGORY = :category
+        `;
+
+        const result = await connection.execute(query, {
+            jobId: jobId,
+            category: category,
+        });
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send({ success: false, message: "File not found in the database." });
+        }
+
+        const zipFileName = result.rows[0][0]; // Ambil nama file dari hasil query
+
+        // Tentukan path file zip
+        const filePath = path.join(zipFileName);
+
+        // Cek jika file zip sudah ada di direktori
+        fs.stat(filePath, async (err, stats) => {
+            if (err) {
+                return res
+                    .status(404)
+                    .send({ success: false, message: "File not found." });
+            }
+
+            let connection_download;
+            try {
+                // Establish a connection to the database
+                connection_download = await oracledb.getConnection(config);
+
+                // Call the stored procedure P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED
+                const result = await connection_download.execute(
+                    `BEGIN DBCTC_V2.P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED(:P_ID_REDIS, :P_NAME_FILE); END;`,
+                    {
+                        P_ID_REDIS: jobId, // Pass the jobId to the stored procedure
+                        P_NAME_FILE: zipFileName.split("\\").pop(), // Extract the file name from the full path
+                    }
+                );
+
+                // Commit the changes
+                await connection_download.commit();
+                console.log('Export updated to "Downloaded" for job ID:', jobId);
+            } catch (err) {
+                console.error('Error updating export process to "Downloaded":', err);
+            } finally {
+                // Ensure the connection is closed
+                if (connection_download) {
+                    await connection_download.close();
+                }
+            }
 
             // Serve the file for download
             res.download(filePath, path.basename(filePath), (downloadErr) => {
