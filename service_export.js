@@ -1557,7 +1557,7 @@ const processJob = async (job) => {
                                 NAME_FILE  = :filename,
                                 UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
                                 TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'MP'
                         `;
 
                         // Prepare the update values
@@ -4729,7 +4729,9 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
 
             let whereClause = `WHERE 1 = 1`;
             const bindParams = {};
@@ -4753,6 +4755,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             // Filter marketplace
             whereClause += ` AND CUST_ID IN ('11666700','80561600','80561601','80514305')`;
 
+            console.log('Menjalankan query data...');
             const result = await connection.execute(`
                 SELECT 
                     '''' || AWB_NO AS AWB,
@@ -4781,70 +4784,97 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                 ${whereClause}
             `, bindParams);
 
+            console.log('Query selesai, memproses data...');
+
             const rows = result.rows;
+            const chunkSize = 1000000;
+            const chunks = [];
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
+            }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
-            const timeString = new Date().toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
-            const dateString = new Date().toISOString().split('T')[0];
-            const fileName = path.join(folderPath, `MarketplaceReport_${timeString}_${user_id}.xlsx`);
-
-            const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
-            const worksheet = workbook.addWorksheet('Marketplace Report');
-
-            // Header sesuai dengan label tampilan website
-            const headers = [
-                "NO",
-                "CONNOTE NO",
-                "CONNOTE DATE",
-                "SERVICES CODE",
-                "CONNOTE WEIGHT",
-                "ORIGIN",
-                "DESTINATION",
-                "CUST ID",
-                "MARKETPLACE",
-                "BAG NO",
-                "PRORATED WEIGHT",
-                "OUTBOND MANIFEST NO",
-                "OUTBOND MANIFEST DATE",
-                "OUTBOND MANIFEST ROUTE",
-                "TRANSIT MANIFEST NO",
-                "TRANSIT MANIFEST DATE",
-                "TRANSIT MANIFEST ROUTE",
-                "MODA",
-                "MODA TYPE"
-            ];
-
-            // Metadata laporan
-            worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
-            worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
-            worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
-            worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
-            worksheet.addRow(['User Id:', user_id]).commit();
-            worksheet.addRow(['Jumlah Data:', rows.length]).commit();
-            worksheet.addRow([]).commit();
-            worksheet.addRow(headers).commit();
-
-            // Tulis data ke Excel
+            console.log('Memulai proses ekspor Excel...');
             let no = 1;
-            for (const row of rows) {
-                worksheet.addRow([no++, ...row]).commit();
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `BiayaAngkut_Marketplace_Report_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Marketplace Report');
+
+                // Header sesuai dengan label tampilan website
+                const headers = [
+                    "NO",
+                    "CONNOTE NO",
+                    "CONNOTE DATE",
+                    "SERVICES CODE",
+                    "CONNOTE WEIGHT",
+                    "ORIGIN",
+                    "DESTINATION",
+                    "CUST ID",
+                    "MARKETPLACE",
+                    "BAG NO",
+                    "PRORATED WEIGHT",
+                    "OUTBOND MANIFEST NO",
+                    "OUTBOND MANIFEST DATE",
+                    "OUTBOND MANIFEST ROUTE",
+                    "TRANSIT MANIFEST NO",
+                    "TRANSIT MANIFEST DATE",
+                    "TRANSIT MANIFEST ROUTE",
+                    "MODA",
+                    "MODA TYPE"
+                ];
+
+                // Metadata laporan
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
+
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
+
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'MP'
+                });
+                await connection.commit();
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
             }
 
-            await workbook.commit();
-
-            // Buat file zip
-            const zipFileName = path.join(__dirname, 'file_download', `MarketplaceReport_${user_id}_${dateString}_${timeString}.zip`);
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, 'file_download', `BiayaAngkut_Marketplace_Report_${user_id}_${dateString}_${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
-            archive.file(fileName, { name: path.basename(fileName) });
+            archive.directory(folderPath, false);
             await archive.finalize();
 
             fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
 
             resolve({ zipFileName, dataCount: rows.length });
-
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
             reject(err);
@@ -6316,7 +6346,7 @@ app.get("/getreportmp", async (req, res) => {
         const logFilePath = path.join(
             __dirname,
             "log_files",
-            `JNE_REPORT_TCO_${job.id}.txt`
+            `JNE_REPORT_MP_${job.id}.txt`
         );
 
         if (!fs.existsSync(path.dirname(logFilePath))) {
@@ -7171,6 +7201,88 @@ app.get("/downloaddbonasum/:jobId", async (req, res) => {
             //   jobId: jobId,
             // });
             // await connection.commit();
+
+            // Serve the file for download
+            res.download(filePath, path.basename(filePath), (downloadErr) => {
+                if (downloadErr) {
+                    return res
+                        .status(500)
+                        .send({ success: false, message: "Error downloading the file." });
+                }
+            });
+        });
+    } catch (err) {
+        console.error("Error fetching job data or handling download:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while processing the download.",
+        });
+    }
+});
+
+app.get("/downloadmp/:jobId", async (req, res) => {
+    const { jobId } = req.params; // Ambil jobId dari parameter URL
+    const category = "MP"; // Misalnya 'TCO', bisa disesuaikan sesuai kebutuhan
+
+    try {
+        // Koneksi ke database untuk mencari nama file berdasarkan jobId dan category
+        const connection = await oracledb.getConnection(config);
+        const query = `
+            SELECT NAME_FILE
+                FROM CMS_COST_TRANSIT_V2_LOG
+            WHERE ID_JOB_REDIS = :jobId
+                AND CATEGORY = :category
+        `;
+
+        const result = await connection.execute(query, {
+            jobId: jobId,
+            category: category,
+        });
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send({ success: false, message: "File not found in the database." });
+        }
+
+        const zipFileName = result.rows[0][0]; // Ambil nama file dari hasil query
+
+        // Tentukan path file zip
+        const filePath = path.join(zipFileName);
+
+        // Cek jika file zip sudah ada di direktori
+        fs.stat(filePath, async (err, stats) => {
+            if (err) {
+                return res
+                    .status(404)
+                    .send({ success: false, message: "File not found." });
+            }
+
+            let connection_download;
+            try {
+                // Establish a connection to the database
+                connection_download = await oracledb.getConnection(config);
+
+                // Call the stored procedure P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED
+                const result = await connection_download.execute(
+                    `BEGIN DBCTC_V2.P_UPD_LOG_EXPORT_ZIPPEDDOWNLOADED(:P_ID_REDIS, :P_NAME_FILE); END;`,
+                    {
+                        P_ID_REDIS: jobId, // Pass the jobId to the stored procedure
+                        P_NAME_FILE: zipFileName.split("\\").pop(), // Extract the file name from the full path
+                    }
+                );
+
+                // Commit the changes
+                await connection_download.commit();
+                console.log('Export updated to "Downloaded" for job ID:', jobId);
+            } catch (err) {
+                console.error('Error updating export process to "Downloaded":', err);
+            } finally {
+                // Ensure the connection is closed
+                if (connection_download) {
+                    await connection_download.close();
+                }
+            }
 
             // Serve the file for download
             res.download(filePath, path.basename(filePath), (downloadErr) => {
