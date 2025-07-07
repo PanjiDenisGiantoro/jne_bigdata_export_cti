@@ -339,14 +339,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCO'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -478,14 +478,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'TCI'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -615,14 +615,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -752,14 +752,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -902,14 +902,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'CA'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1030,14 +1030,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'RU'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1161,14 +1161,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBO'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -1290,14 +1290,14 @@ const processJob = async (job) => {
 
                         const connection = await oracledb.getConnection(config);
                         const updateQuery = `
-                            UPDATE CMS_COST_TRANSIT_V2_LOG
-                            SET DOWNLOAD   = 0,
-                                STATUS     = 'Zipped',
-                                NAME_FILE  = :filename,
-                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
-                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
-                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
-                        `;
+                        UPDATE CMS_COST_TRANSIT_V2_LOG
+                        SET DOWNLOAD   = 0,
+                            STATUS     = 'Zipped',
+                            NAME_FILE  = :filename,
+                            UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                            TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                        WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DBONA'
+                    `;
 
                         // Prepare the update values
                         const updateValues = {
@@ -2776,10 +2776,10 @@ async function fetchDataAndExportToExcelTCI({
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-                    UPDATE CMS_COST_TRANSIT_V2_LOG
-                    SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-                `;
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -3127,10 +3127,10 @@ async function fetchDataAndExportToExcelDCIbackup({ origin, destination, froms, 
                 await workbook.commit();
 
                 const updateQuery = `
-                    UPDATE CMS_COST_TRANSIT_V2_LOG
-                    SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-                `;
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -3226,6 +3226,7 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
         AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
         AND CNOTE_NO NOT LIKE 'RT%'
         AND CNOTE_NO NOT LIKE 'FW%'
+                 AND SERVICES_CODE <> 'INTL20'
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -3371,6 +3372,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 AND SERVICES_CODE NOT IN ('CML', 'CTC_CML', 'P2P')
                 AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
                 AND CNOTE_NO NOT LIKE 'FW%' -- Exclude records with CNOTE_NO starting with 'FW'
+                 AND SERVICES_CODE <> 'INTL20'
                 `,
                 bindParams
             );
@@ -3437,10 +3439,10 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-                    UPDATE CMS_COST_TRANSIT_V2_LOG
-                    SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-                `;
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -5015,7 +5017,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
 async function generateJobId() {
     const uuid = uuidv4();
     const uuidWithoutDash = uuid.replace(/-/g, '');
-     // Mengambil 15 karakter pertama dan konversi ke number
+    // Mengambil 15 karakter pertama dan konversi ke number
     return parseInt(uuidWithoutDash.slice(0, 15), 16);
 }
 const getQueueToAddJob = async (branch_id) => {
@@ -5261,6 +5263,8 @@ app.get("/getreporttci", async (req, res) => {
             TM,
             user_session,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5427,6 +5431,8 @@ app.get("/getreportdci", async (req, res) => {
             service,
             dateStr
             // queue: { name: 'reportDCI'}
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5617,6 +5623,8 @@ app.get("/getreportdco", async (req, res) => {
             user_id,
             service,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5762,6 +5770,8 @@ app.get("/getreportca", async (req, res) => {
             thrus,
             user_id,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5910,6 +5920,8 @@ app.get("/getreportru", async (req, res) => {
             thrus,
             user_id,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6041,6 +6053,8 @@ app.get("/getreportdbo", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6167,6 +6181,8 @@ app.get("/getreportdbona", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6293,6 +6309,8 @@ app.get("/getreportdbonasum", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6422,6 +6440,8 @@ app.get("/getreportmp", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -7362,9 +7382,9 @@ app.get("/downloadmp/:jobId", async (req, res) => {
         const connection = await oracledb.getConnection(config);
         const query = `
             SELECT NAME_FILE
-            FROM CMS_COST_TRANSIT_V2_LOG
+                FROM CMS_COST_TRANSIT_V2_LOG
             WHERE ID_JOB_REDIS = :jobId
-              AND CATEGORY = :category
+                AND CATEGORY = :category
         `;
 
         const result = await connection.execute(query, {
