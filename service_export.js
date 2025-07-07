@@ -2199,7 +2199,7 @@ async function estimateDataCountMP({origin, destination, froms, thrus, user_id})
                     const sql = `
                         SELECT COUNT(*) AS DATA_COUNT
                         FROM CMS_COST_TRANSIT_V2
-                        ${whereClause}
+                                 ${whereClause}
                     `;
 
                     connection.execute(sql, bindParams, (err, result) => {
@@ -3223,9 +3223,9 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                        NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
                        NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
                 FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
-        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
         AND CNOTE_NO NOT LIKE 'RT%'
         AND CNOTE_NO NOT LIKE 'FW%'
+                      AND SERVICES_CODE NOT IN ('TRC11','TRC13','INTL20')                \`,
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -3275,10 +3275,10 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-          UPDATE CMS_COST_TRANSIT_V2_LOG
-          SET SUMMARY_FILE = :summary_file
-          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-        `;
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -3368,10 +3368,9 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                                                          NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
                                                          NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
                                                      FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN, 1, 3) <> SUBSTR(DESTINATION, 1, 3)
-                AND SERVICES_CODE NOT IN ('CML', 'CTC_CML', 'P2P')
                 AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
                 AND CNOTE_NO NOT LIKE 'FW%' -- Exclude records with CNOTE_NO starting with 'FW'
-                `,
+                AND SERVICES_CODE NOT IN ('TRC11','TRC13','INTL20')                `,
                 bindParams
             );
             console.log('Query selesai, memproses data...');
@@ -4885,7 +4884,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
-                SELECT 
+                SELECT
                     '''' || AWB_NO AS AWB,
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
                     SERVICES_CODE,
@@ -4893,11 +4892,11 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     ORIGIN,
                     DESTINATION,
                     CUST_ID,
-                    CASE 
+                    CASE
                         WHEN CUST_ID = '80514305' THEN 'SHOPEE'
                         WHEN CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
                         ELSE 'OTHER'
-                    END AS MARKETPLACE,
+                        END AS MARKETPLACE,
                     '''' || BAG_NO AS BAG_NO,
                     PRORATED_WEIGHT,
                     OUTBOND_MANIFEST_NO,
@@ -4909,7 +4908,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     MODA,
                     MODA_TYPE
                 FROM CMS_COST_TRANSIT_V2
-                ${whereClause}
+                         ${whereClause}
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -5015,7 +5014,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
 async function generateJobId() {
     const uuid = uuidv4();
     const uuidWithoutDash = uuid.replace(/-/g, '');
-     // Mengambil 15 karakter pertama dan konversi ke number
+    // Mengambil 15 karakter pertama dan konversi ke number
     return parseInt(uuidWithoutDash.slice(0, 15), 16);
 }
 const getQueueToAddJob = async (branch_id) => {
@@ -5261,6 +5260,8 @@ app.get("/getreporttci", async (req, res) => {
             TM,
             user_session,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5427,6 +5428,8 @@ app.get("/getreportdci", async (req, res) => {
             service,
             dateStr
             // queue: { name: 'reportDCI'}
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5617,6 +5620,8 @@ app.get("/getreportdco", async (req, res) => {
             user_id,
             service,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5762,6 +5767,8 @@ app.get("/getreportca", async (req, res) => {
             thrus,
             user_id,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -5910,6 +5917,8 @@ app.get("/getreportru", async (req, res) => {
             thrus,
             user_id,
             dateStr,
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6041,6 +6050,8 @@ app.get("/getreportdbo", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6167,6 +6178,8 @@ app.get("/getreportdbona", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6293,6 +6306,8 @@ app.get("/getreportdbonasum", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
@@ -6422,6 +6437,8 @@ app.get("/getreportmp", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
