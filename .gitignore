@@ -1,4 +1,7 @@
 file_download/
+src/file_download/
 log_files/
-file_download_dev
+src/log/log_files/
+file_download_dev/
+src/file_download_dev/
 node_modules/
