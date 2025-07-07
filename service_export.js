@@ -24,14 +24,14 @@ const { pipeline } = require('stream/promises');
 const fsPromises = fs.promises;  // Ini bikin error karena dipakai sebelum inisialisasi
 const rateLimit = require('express-rate-limit');  // Import express-rate-limit
 
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 menit
-    max: 30, // Maksimum 100 permintaan per IP dalam 15 menit
-    message: 'Terlalu banyak permintaan dari IP ini, coba lagi nanti.'
-});
-
-// Gunakan rate limiter di semua endpoint
-app.use(limiter);
+// const limiter = rateLimit({
+//     windowMs: 15 * 60 * 1000, // 15 menit
+//     max: 30, // Maksimum 100 permintaan per IP dalam 15 menit
+//     message: 'Terlalu banyak permintaan dari IP ini, coba lagi nanti.'
+// });
+//
+// // Gunakan rate limiter di semua endpoint
+// app.use(limiter);
 
 // require('dotenv').config();
 // Middleware to parse JSON bodies
@@ -2199,7 +2199,7 @@ async function estimateDataCountMP({origin, destination, froms, thrus, user_id})
                     const sql = `
                         SELECT COUNT(*) AS DATA_COUNT
                         FROM CMS_COST_TRANSIT_V2
-                                 ${whereClause}
+                        ${whereClause}
                     `;
 
                     connection.execute(sql, bindParams, (err, result) => {
@@ -3275,10 +3275,10 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                 console.log(`File berhasil dibuat: ${fileName}`);
 
                 const updateQuery = `
-                    UPDATE CMS_COST_TRANSIT_V2_LOG
-                    SET SUMMARY_FILE = :summary_file
-                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
-                `;
+          UPDATE CMS_COST_TRANSIT_V2_LOG
+          SET SUMMARY_FILE = :summary_file
+          WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+        `;
                 await connection.execute(updateQuery, {
                     summary_file: i + 1,
                     jobId: jobId,
@@ -3360,7 +3360,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                                                              END                                             WEIGHT,
                                                          NVL(AMOUNT, 0) AS AMOUNT,
                                                          MANIFEST_NO,
-                                                         TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
+                                                         TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE, -- Format tanggal
                                                          TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE, -- Format tanggal
                                                          NVL(DELIVERY, 0) AS DELIVERY,
                                                          NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
@@ -4885,7 +4885,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
-                SELECT
+                SELECT 
                     '''' || AWB_NO AS AWB,
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
                     SERVICES_CODE,
@@ -4893,11 +4893,11 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     ORIGIN,
                     DESTINATION,
                     CUST_ID,
-                    CASE
+                    CASE 
                         WHEN CUST_ID = '80514305' THEN 'SHOPEE'
                         WHEN CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
                         ELSE 'OTHER'
-                        END AS MARKETPLACE,
+                    END AS MARKETPLACE,
                     '''' || BAG_NO AS BAG_NO,
                     PRORATED_WEIGHT,
                     OUTBOND_MANIFEST_NO,
@@ -4909,7 +4909,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     MODA,
                     MODA_TYPE
                 FROM CMS_COST_TRANSIT_V2
-                         ${whereClause}
+                ${whereClause}
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -5012,6 +5012,12 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
     });
 }
 
+async function generateJobId() {
+    const uuid = uuidv4();
+    const uuidWithoutDash = uuid.replace(/-/g, '');
+     // Mengambil 15 karakter pertama dan konversi ke number
+    return parseInt(uuidWithoutDash.slice(0, 15), 16);
+}
 const getQueueToAddJob = async (branch_id) => {
     let selectedQueue;
     let activeJobs1, activeJobs2, activeJobs3, activeJobs4, activeJobs5, activeJobs6, activeJobs7, activeJobs8, activeJobs9, activeJobs10;
@@ -5103,6 +5109,8 @@ app.get("/getreporttco", async (req, res) => {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()  // Gunakan UUID sebagai job ID
         });
 
         const jsonData = {
