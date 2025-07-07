@@ -15,3 +15,5 @@ read ECONNRESET
 2025-06-04 00:32:15 | JobID: 8 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: jobId is not defined
 2025-06-12 14:12:23 | JobID: 21 | Origin: BDO | Destination: 0 | UserID: RAFEJIO | Session : 3032096450190 | Error: undefined
 2025-06-12 14:18:35 | JobID: 22 | Origin: BDO | Destination: 0 | UserID: RAFEJIO | Session : 3032096450190 | Error: undefined
+2025-07-07 15:17:33 | JobID: 403dc488-1896-4543-92dd-6c4550f585d5 | Origin: BDO | Destination: 0 | UserID: YANTILOCAL | Error: ORA-01722: invalid number
+Help: https://docs.oracle.com/error-help/db/ora-01722/
