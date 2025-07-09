@@ -1769,10 +1769,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                         'JTR>130',
                         'JTR23',
                         'CTCJTR23',
-                        'CTCTRC11',
-                        'CTCJTR5_23',
-                        'JTR5_23',
-                        'CRGTK')
+                        'CTCTRC11')
                 AND SERVICES_CODE NOT LIKE '%INT%'
                 AND CNOTE_NO NOT LIKE 'RT%'
                 AND CNOTE_NO NOT LIKE 'FW%'
