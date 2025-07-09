@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 const {
     getReportTCO, getReportTCI, getReportDCI, getReportDCO, getReportCA, getReportRU, getReportDBO, getReportDBONA, getReportDBONASUM, getReportMP,
     downloadTCO, downloadTCI, downloadDCI, downloadDCO, downloadCA, downloadRU, downloadDBO, downloadDBONA, downloadDBONASUM, downloadMP,
@@ -70,5 +71,23 @@ router.get('/progresstci', (req, res) => {
 router.get('/progressdci', (req, res) => {
     res.sendFile(__dirname + '/public/progressdci.html');
 });
+
+router.get('/logs', (req, res) => {
+    const logPath = `/Users/abiyyirahinda/Documents/testlog.log`;
+
+    fs.readFile(logPath, 'utf8', (err, data) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).send('Log file not found or cannot be read.');
+        }
+
+        const lines = data.trim().split('\n');
+        const last100Lines = lines.slice(-150).join('\n');
+
+        res.setHeader('Content-Type', 'text/plain');
+        res.send(last100Lines || 'Log is empty.');
+    });
+});
+
 
 module.exports = router; 
