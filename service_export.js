@@ -4599,14 +4599,11 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 FROM CMS_COST_DELIVERY_v2
                          ${whereClause}
                     AND COST_OPS IS NOT NULL
-                     AND SERVICES_CODE NOT IN ('JTR<130',
+                    AND SERVICES_CODE not IN ('JTR<130',
                                'JTR>130',
                                'JTR23',
                                'CTCJTR23',
-                               'CTCTRC11',
-                               'CTCJTR5_23',
-                               'JTR5_23',
-                               'CRGTK')
+                               'CTCTRC11')
                   AND SERVICES_CODE NOT LIKE '%INT%'
                   AND CNOTE_NO NOT LIKE 'RT%'
                   AND CNOTE_NO NOT LIKE 'FW%'
@@ -4630,32 +4627,29 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             // jtr
             rowIndex += 1;
             const summaryOpsJTR = await connection.execute(`
-                SELECT
-                    SERVICES_CODE,
-                    SUM(QTY),
-                    CURRENCY,
-                    SUM(WEIGHT),
-                    COUNT(CNOTE_NO),
-                    SUM(AMOUNT),
-                    SUM(AMOUNT)/1.011 AS NETT_AMOUNT,
-                    SUM(COST_OPS),
-                    CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
-                    CASE
-                        WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
-                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
-                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23','CTCTRC11') THEN 'LOG'
-                        ELSE 'EXP'
-                        END TIPE,
-                    CASE
-                        WHEN SERVICES_CODE LIKE 'JTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
-                        WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN (SUM(AMOUNT)/1.011) * 0.05
-                        WHEN SERVICES_CODE IN ('CRGMB24','CRGTK','CTCCARGO23') THEN (SUM(AMOUNT)/1.011) * 0.05
-                        WHEN SERVICES_CODE LIKE '%TRC%' THEN 0
-                        ELSE (SUM(AMOUNT)/1.011) * 0.1
-                        END BIAYA_OPS_NEW
-                FROM CMS_COST_DELIVERY_v2
-                         ${whereClause}
-                    AND COST_OPS IS NOT NULL
+                SELECT SERVICES_CODE,
+                       SUM(QTY),
+                       CURRENCY,
+                       SUM(WEIGHT),
+                       COUNT(CNOTE_NO),
+                       SUM(AMOUNT),
+                       SUM(AMOUNT) / 1.011 AS                       NETT_AMOUNT,
+                       SUM(COST_OPS),
+                       CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
+                       CASE
+                           WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
+                           WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN 'LOG'
+                           WHEN SERVICES_CODE IN ('CRGMB24', 'CRGTK', 'CTCCARGO23', 'CTCTRC11') THEN 'LOG'
+                           ELSE 'EXP'
+                           END                                      TIPE,
+                       CASE
+                           WHEN SERVICES_CODE LIKE 'JTR%' THEN (SUM(AMOUNT) / 1.011) * 0.05
+                           WHEN SERVICES_CODE LIKE 'CTCJTR%' THEN (SUM(AMOUNT) / 1.011) * 0.05
+                           WHEN SERVICES_CODE IN ('CRGMB24', 'CRGTK', 'CTCCARGO23') THEN (SUM(AMOUNT) / 1.011) * 0.05
+                           WHEN SERVICES_CODE LIKE '%TRC%' THEN 0
+                           ELSE (SUM(AMOUNT) / 1.011) * 0.1
+                           END                                      BIAYA_OPS_NEW
+                FROM CMS_COST_DELIVERY_v2 ${whereClause} AND COST_OPS IS NOT NULL
                         AND SERVICES_CODE IN ('JTR<130',
                                'JTR>130',
                                'JTR23',
