@@ -4,6 +4,14 @@ const { config, redis } = require('../config/dbConfig');
 const oracledb = require('oracledb');
 const { getQueueToAddJob } = require('../queue/jobQueue');
 const { reportQueues } = require('../queue/jobQueue');
+const { v4: uuidv4 } = require('uuid');
+
+async function generateJobId() {
+    const uuid = uuidv4();
+    const uuidWithoutDash = uuid.replace(/-/g, '');
+    // Mengambil 15 karakter pertama dan konversi ke number
+    return parseInt(uuidWithoutDash.slice(0, 15), 16);
+}
 
 async function getReportTCO(req, res) {
     try {
@@ -22,7 +30,17 @@ async function getReportTCO(req, res) {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
         const queueToAdd = await getQueueToAddJob(branch_id);
-        const job = await queueToAdd.add({ type: 'tco', origin, destination, froms, thrus, user_id, dateStr });
+        const job = await queueToAdd.add({
+            type: 'tco',
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            dateStr
+        }, {
+            jobId: await generateJobId()
+        });
         const jsonData = { origin, destination, froms, thrus, user_id, user_session, dateStr, branch_id };
         const clobJson = JSON.stringify(jsonData);
         const connection = await oracledb.getConnection(config);
@@ -49,7 +67,19 @@ async function getReportTCI(req, res) {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
         const queueToAdd = await getQueueToAddJob(branch_id);
-        const job = await queueToAdd.add({ type: 'tci', origin, destination, froms, thrus, user_id, TM, user_session, dateStr });
+        const job = await queueToAdd.add({
+            type: 'tci',
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            TM,
+            user_session,
+            dateStr
+        }, {
+            jobId: await generateJobId()
+        });
         const jsonData = { origin, destination, froms, thrus, user_id, TM, user_session, dateStr, branch_id };
         const clobJson = JSON.stringify(jsonData);
         const connection = await oracledb.getConnection(config);
@@ -76,7 +106,18 @@ async function getReportDCI(req, res) {
         const today = new Date();
         const dateStr = today.toISOString().split("T")[0];
         const queueToAdd = await getQueueToAddJob(branch_id);
-        const job = await queueToAdd.add({ type: 'dci', origin, destination, froms, thrus, user_id, service, dateStr });
+        const job = await queueToAdd.add({
+            type: 'dci',
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            service,
+            dateStr
+        }, {
+            jobId: await generateJobId()
+        });
         const jsonData = { origin, destination, froms, thrus, user_id, service, dateStr, branch_id, user_session };
         const clobJson = JSON.stringify(jsonData);
         const connection = await oracledb.getConnection(config);
@@ -126,6 +167,8 @@ async function getReportDCO(req, res) {
             user_id,
             service,
             dateStr,
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -177,7 +220,7 @@ async function getReportDCO(req, res) {
             log_json: clobJson,
         };
 
-        console.log("insert data dco :" +insertValues)
+        console.log("insert data dco :" + insertValues)
 
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
@@ -240,6 +283,8 @@ async function getReportCA(req, res) {
             thrus,
             user_id,
             dateStr,
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -356,6 +401,8 @@ async function getReportRU(req, res) {
             thrus,
             user_id,
             dateStr,
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -407,7 +454,7 @@ async function getReportRU(req, res) {
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data ru :" +insertValues)
+        console.log("insert data ru :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -473,6 +520,8 @@ async function getReportDBO(req, res) {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -522,7 +571,7 @@ async function getReportDBO(req, res) {
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data DBO :" +insertValues)
+        console.log("insert data DBO :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -577,6 +626,8 @@ async function getReportDBONA(req, res) {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -628,7 +679,7 @@ async function getReportDBONA(req, res) {
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data DBONA :" +insertValues)
+        console.log("insert data DBONA :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -692,6 +743,8 @@ async function getReportDBONASUM(req, res) {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -743,7 +796,7 @@ async function getReportDBONASUM(req, res) {
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data DBONASUM :" +insertValues)
+        console.log("insert data DBONASUM :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -810,6 +863,8 @@ async function getReportMP(req, res) {
             thrus,
             user_id,
             dateStr
+        }, {
+            jobId: await generateJobId()
         });
 
         const jsonData = {
@@ -860,7 +915,7 @@ async function getReportMP(req, res) {
             log_json: clobJson,
         };
 
-        console.log("Insert data MP :" +insertValues)
+        console.log("Insert data MP :" + insertValues)
 
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
@@ -1329,10 +1384,10 @@ async function downloadMP(req, res) {
 async function checkPendingJobs(req, res) {
     try {
         const length = await redis.llen('pending_jobs');
-        res.json({message: `There are ${length} jobs in the pending_jobs queue.`});
+        res.json({ message: `There are ${length} jobs in the pending_jobs queue.` });
     } catch (error) {
         console.error('Error checking pending jobs length:', error);
-        res.status(500).json({error: 'Failed to check pending jobs length'});
+        res.status(500).json({ error: 'Failed to check pending jobs length' });
     }
 }
 
@@ -1340,10 +1395,10 @@ async function getPendingJobs(req, res) {
     try {
         const jobs = await redis.lrange('pending_jobs', 0, -1); // Ambil semua job dari antrian pending
         const jobData = jobs.map(job => JSON.parse(job));  // Parse the JSON data for each job
-        res.json({pendingJobs: jobData});
+        res.json({ pendingJobs: jobData });
     } catch (error) {
         console.error('Error retrieving pending jobs:', error);
-        res.status(500).json({error: 'Failed to retrieve pending jobs'});
+        res.status(500).json({ error: 'Failed to retrieve pending jobs' });
     }
 }
 
