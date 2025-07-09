@@ -2,18 +2,18 @@ const express = require('express');
 const oracledb = require('oracledb');  // Import oracledb untuk koneksi ke Oracle
 const path = require('path');  // Untuk memanipulasi path direktori
 const Bull = require('bull'); // Import Bull untuk job queue
-const {setQueues, BullAdapter} = require('bull-board');
+const { setQueues, BullAdapter } = require('bull-board');
 const app = express();
 const port = 3010;  // Port API
 const Sentry = require("@sentry/node");
-const {nodeProfilingIntegration} = require("@sentry/profiling-node");
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 const cluster = require('cluster');
 const os = require('os');
 const Redis = require('ioredis');
 const redis = new Redis(); // Koneksi ke Redis server
 const JOB_LOCK_KEY = 'job_lock';
 const ProgressBar = require('progress');
-const {format} = require('date-fns');  // Import the format function from date-fns
+const { format } = require('date-fns');  // Import the format function from date-fns
 const moment = require('moment');  // Import moment.js
 const { v4: uuidv4 } = require('uuid');
 const XlsxStreamReader = require('xlsx-stream-reader'); // Menggunakan xlsx-stream-reader untuk membaca Excel
@@ -56,7 +56,7 @@ const config_jnebilltraining = {
     connectString: '10.8.2.19:1522/JNEBILL'  // Host, port, dan service name
 };
 const reportQueue = new Bull('reportQueue', {
-    redis: {host: '127.0.0.1', port: 6379},
+    redis: { host: '127.0.0.1', port: 6379 },
 
 
     removeOnComplete: true // Job selesai langsung dihapus dari Redis
@@ -179,7 +179,7 @@ function logErrorToFileCA(jobId, branch_id, userId, errorMessage) {
         }
     });
 }
-function logErrorToFileRU(jobId, origin_awal,destination,services_code, userId, errorMessage) {
+function logErrorToFileRU(jobId, origin_awal, destination, services_code, userId, errorMessage) {
     const logFilePath = path.join(__dirname, 'error_logs.txt');
     const logMessage = `${format(new Date(), 'yyyy-MM-dd HH:mm:ss')} | JobID: ${jobId} | origin: ${origin_awal} | Destination: ${destination} | service_code : ${services_code} | UserID: ${userId} | Error: ${errorMessage}\n`;
 
@@ -199,7 +199,7 @@ function logErrorToFileDBO(jobId, branch_id, userId, errorMessage) {
         }
     });
 }
-function logErrorToFileDBONA(jobId, branch_id,currency,services_code, userId, errorMessage) {
+function logErrorToFileDBONA(jobId, branch_id, currency, services_code, userId, errorMessage) {
     const logFilePath = path.join(__dirname, 'error_logs.txt');
     const logMessage = `${format(new Date(), 'yyyy-MM-dd HH:mm:ss')} | JobID: ${jobId} | origin: ${branch_id} | Destination: ${currency} | service_code : ${services_code} | UserID: ${userId} | Error: ${errorMessage}\n`;
 
@@ -264,9 +264,9 @@ const processJob = async (job) => {
             job.queue.name === 'reportQueue10'
         ) {
             const { type } = job.data;
-            if(type === 'tco'){
-                await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
-                    const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
+            if (type === 'tco') {
+                await Sentry.startSpan({ name: 'Process Job' + job.id, jobId: job.id }, async (span) => {
+                    const { origin, destination, froms, thrus, user_id, dateStr, jobId } = job.data;
 
                     let zipFileName = '';
                     let completionTime = '';
@@ -382,7 +382,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFile(job.id, origin, destination, user_id, error.message);
@@ -396,10 +396,10 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'tci') {
+            } else if (type === 'tci') {
 
-                await Sentry.startSpan({name: 'Process Report TCI Job' + job.id, jobId: job.id}, async (span) => {
-                    const {origin, destination, froms, thrus, user_id, TM, user_session, dateStr, jobId} = job.data;
+                await Sentry.startSpan({ name: 'Process Report TCI Job' + job.id, jobId: job.id }, async (span) => {
+                    const { origin, destination, froms, thrus, user_id, TM, user_session, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
 
                     let zipFileName = '';
@@ -521,7 +521,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFileTCI(job.id, origin, destination, user_id, user_session, error.message);
@@ -535,9 +535,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'dci'){
-                await Sentry.startSpan({name: 'Process Report DCI Job' + job.id, jobId: job.id}, async (span) => {
-                    const {origin, destination, froms, thrus, user_id, service, dateStr,jobId} = job.data;
+            } else if (type === 'dci') {
+                await Sentry.startSpan({ name: 'Process Report DCI Job' + job.id, jobId: job.id }, async (span) => {
+                    const { origin, destination, froms, thrus, user_id, service, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
 
                     let zipFileName = '';
@@ -656,7 +656,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFileDCI(job.id, origin, destination, user_id, error.message);
@@ -671,9 +671,9 @@ const processJob = async (job) => {
                     }
                 });
 
-            }else if(type ==='dco') {
-                await Sentry.startSpan({name: 'Process Report DCO Job' + job.id, jobId: job.id}, async (span) => {
-                    const {origin, destination, froms, thrus, service, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'dco') {
+                await Sentry.startSpan({ name: 'Process Report DCO Job' + job.id, jobId: job.id }, async (span) => {
+                    const { origin, destination, froms, thrus, service, user_id, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
 
                     let zipFileName = '';
@@ -794,7 +794,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFileDCO(job.id, origin, destination, service, user_id, error.message);
@@ -808,9 +808,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'ca') {
-                await Sentry.startSpan({name: 'Process Report CA Job' + job.id, jobId: job.id}, async (span) => {
-                    const {branch, froms, thrus, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'ca') {
+                await Sentry.startSpan({ name: 'Process Report CA Job' + job.id, jobId: job.id }, async (span) => {
+                    const { branch, froms, thrus, user_id, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
 
                     let zipFileName = '';
@@ -874,7 +874,7 @@ const processJob = async (job) => {
                                 dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
                                 return result.zipFileName;
                             });
-                        }else{
+                        } else {
                             zipFileName = await fetchDataAndExportToExcelCA({
                                 branch,
                                 froms,
@@ -937,7 +937,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFileCA(job.id, origin, destination, service, user_id, error.message);
@@ -951,9 +951,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'ru') {
-                await Sentry.startSpan({name: 'Process Report RU Job' + job.id, jobId: job.id}, async (span) => {
-                    const {origin_awal,destination, services_code, froms, thrus, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'ru') {
+                await Sentry.startSpan({ name: 'Process Report RU Job' + job.id, jobId: job.id }, async (span) => {
+                    const { origin_awal, destination, services_code, froms, thrus, user_id, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
                     let zipFileName = '';
                     let completionTime = '';
@@ -1071,7 +1071,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFileRU(job.id, origin_awal, destination, services_code, user_id, error.message);
@@ -1085,9 +1085,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'dbo') {
-                await Sentry.startSpan({name: 'Process Report DBO Job' + job.id, jobId: job.id}, async (span) => {
-                    const {  branch_id,froms, thrus, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'dbo') {
+                await Sentry.startSpan({ name: 'Process Report DBO Job' + job.id, jobId: job.id }, async (span) => {
+                    const { branch_id, froms, thrus, user_id, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
                     let zipFileName = '';
                     let completionTime = '';
@@ -1201,10 +1201,10 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
-                            logErrorToFileDBO(job.id,  branch_id, user_id, error.message);
+                            logErrorToFileDBO(job.id, branch_id, user_id, error.message);
 
                         });
                         Sentry.captureException(error);
@@ -1215,9 +1215,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'dbona') {
-                await Sentry.startSpan({name: 'Process Report DBONA Job' + job.id, jobId: job.id}, async (span) => {
-                    const { branch_id, froms, thrus, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'dbona') {
+                await Sentry.startSpan({ name: 'Process Report DBONA Job' + job.id, jobId: job.id }, async (span) => {
+                    const { branch_id, froms, thrus, user_id, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
                     let zipFileName = '';
                     let completionTime = '';
@@ -1228,14 +1228,14 @@ const processJob = async (job) => {
                         // Capture the start time
                         const startTime = Date.now();
 
-                        const  estimatedDataCount = await estimateDataCountDBONA({
+                        const estimatedDataCount = await estimateDataCountDBONA({
                             branch_id,
                             froms,
                             thrus,
                             user_id
                         });
 
-                        console.log('estimasi : '+estimatedDataCount)
+                        console.log('estimasi : ' + estimatedDataCount)
 
                         // Calculate the estimated time based on the benchmark
                         const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
@@ -1331,10 +1331,10 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
-                            logErrorToFileDBONA(job.id,  branch_id, currency,services_code, user_id, error.message);
+                            logErrorToFileDBONA(job.id, branch_id, currency, services_code, user_id, error.message);
 
                         });
                         Sentry.captureException(error);
@@ -1345,9 +1345,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'dbonasum') {
-                await Sentry.startSpan({name: 'Process Report DBONASUM Summary Job' + job.id, jobId: job.id}, async (span) => {
-                    const { branch_id, froms, thrus, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'dbonasum') {
+                await Sentry.startSpan({ name: 'Process Report DBONASUM Summary Job' + job.id, jobId: job.id }, async (span) => {
+                    const { branch_id, froms, thrus, user_id, dateStr, jobId } = job.data;
                     console.log('Processing job with data:', job.data);
                     let zipFileName = '';
                     let completionTime = '';
@@ -1365,7 +1365,7 @@ const processJob = async (job) => {
                         //     user_id
                         // });
 
-                        console.log('estimasi : '+ job.id);
+                        console.log('estimasi : ' + job.id);
 
                         // Calculate the estimated time based on the benchmark
                         const benchmarkRecordsPerMinute = 30000; // 60,000 records / 2 minutes
@@ -1463,10 +1463,10 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
-                            logErrorToFileDBONASUM(job.id,  branch_id,  user_id, error.message);
+                            logErrorToFileDBONASUM(job.id, branch_id, user_id, error.message);
 
                         });
                         Sentry.captureException(error);
@@ -1477,9 +1477,9 @@ const processJob = async (job) => {
                         };
                     }
                 });
-            }else if(type === 'mp') {
-                await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
-                    const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
+            } else if (type === 'mp') {
+                await Sentry.startSpan({ name: 'Process Job' + job.id, jobId: job.id }, async (span) => {
+                    const { origin, destination, froms, thrus, user_id, dateStr, jobId } = job.data;
 
                     let zipFileName = '';
                     let completionTime = '';
@@ -1583,7 +1583,7 @@ const processJob = async (job) => {
                         };
                     } catch (error) {
                         console.error('Error processing the job:', error);
-                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+                        await Sentry.startSpan({ name: 'Log Error to File' + job.id, jobId: job.id }, async () => {
 
                             // Log the error details to file
                             logErrorToFile(job.id, origin, destination, user_id, error.message);
@@ -1598,7 +1598,7 @@ const processJob = async (job) => {
                     }
                 });
             }
-        }else{
+        } else {
             console.log('error queue')
         }
 
@@ -1639,7 +1639,7 @@ reportQueue8.process(async (job) => processJob(job));
 reportQueue9.process(async (job) => processJob(job));
 reportQueue10.process(async (job) => processJob(job));
 
-async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
+async function estimateDataCount({ origin, destination, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -1651,10 +1651,10 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
                     if (origin !== '0') {
-                        whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;                        bindParams.origin = origin + '%';
+                        whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`; bindParams.origin = origin + '%';
                     }
                     if (destination !== '0') {
-                        whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;                        bindParams.destination = destination + '%';
+                        whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`; bindParams.destination = destination + '%';
                     }
 
                     if (froms !== '0' && thrus !== '0') {
@@ -1697,7 +1697,7 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
     });
 }
 
-async function estimateDataCountTCI({origin, destination, froms, thrus, user_id, TM, session}) {
+async function estimateDataCountTCI({ origin, destination, froms, thrus, user_id, TM, session }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -1764,7 +1764,7 @@ async function estimateDataCountTCI({origin, destination, froms, thrus, user_id,
     });
 }
 
-async function estimateDataCountDCI({origin, destination, froms, thrus, service, user_id}) {
+async function estimateDataCountDCI({ origin, destination, froms, thrus, service, user_id }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -1779,12 +1779,12 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
 
                     if (origin !== '0') {
                         whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
-                        bindParams.origin = origin + '%' ;
+                        bindParams.origin = origin + '%';
                     }
 
                     if (destination !== '0') {
                         whereClause += ` AND SUBSTR(DESTINATION, 1, 3) like :destination`;
-                        bindParams.destination = destination + '%' ;
+                        bindParams.destination = destination + '%';
                     }
 
                     if (froms !== '0' && thrus !== '0') {
@@ -1807,8 +1807,15 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
 
                 AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
 
-                AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
-
+                AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA
+                
+                AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
                     `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
@@ -1824,7 +1831,7 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
     });
 }
 
-async function estimateDataCountDCO({origin, destination, froms, thrus, service, user_id}) {
+async function estimateDataCountDCO({ origin, destination, froms, thrus, service, user_id }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -1865,6 +1872,13 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                              AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
        AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
        AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+       AND SERVICES_CODE NOT IN ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+        'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+        'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+        'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+        'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+        'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+        'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
                     `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
@@ -1880,7 +1894,7 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
     });
 }
 
-async function estimateDataCountCA_({branch, froms, thrus, user_id}) {
+async function estimateDataCountCA_({ branch, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -1894,7 +1908,7 @@ async function estimateDataCountCA_({branch, froms, thrus, user_id}) {
 
                     if (branch !== '0') {
                         whereClause += ` AND C.CNOTE_BRANCH_ID = :branch`;
-                        bindParams.branch = branch ;
+                        bindParams.branch = branch;
                     }
 
                     if (froms !== '0' && thrus !== '0') {
@@ -1942,7 +1956,7 @@ async function estimateDataCountCA_({branch, froms, thrus, user_id}) {
     });
 }
 
-async function estimateDataCountCA({branch, froms, thrus, user_id}) {
+async function estimateDataCountCA({ branch, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -2045,7 +2059,7 @@ async function estimateDataCountCA({branch, froms, thrus, user_id}) {
         }
     });
 }
-async function estimateDataCountRU({origin_awal, destination, services_code, froms, thrus, user_id}) {
+async function estimateDataCountRU({ origin_awal, destination, services_code, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -2090,7 +2104,7 @@ async function estimateDataCountRU({origin_awal, destination, services_code, fro
     });
 }
 
-async function estimateDataCountDBO({branch_id, froms, thrus, user_id }) {
+async function estimateDataCountDBO({ branch_id, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -2104,7 +2118,7 @@ async function estimateDataCountDBO({branch_id, froms, thrus, user_id }) {
             if (branch_id !== '0') {
                 //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-                bindParams.branch_id = branch_id ;
+                bindParams.branch_id = branch_id;
             }
 
 
@@ -2128,7 +2142,7 @@ async function estimateDataCountDBO({branch_id, froms, thrus, user_id }) {
         });
     });
 }
-async function estimateDataCountDBONA({  branch_id, froms, thrus, user_id }) {
+async function estimateDataCountDBONA({ branch_id, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         oracledb.getConnection(config, (err, connection) => {
             if (err) {
@@ -2142,7 +2156,7 @@ async function estimateDataCountDBONA({  branch_id, froms, thrus, user_id }) {
             if (branch_id !== '0') {
                 //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-                bindParams.branch_id = branch_id ;
+                bindParams.branch_id = branch_id;
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -2166,7 +2180,7 @@ async function estimateDataCountDBONA({  branch_id, froms, thrus, user_id }) {
     });
 }
 
-async function estimateDataCountMP({origin, destination, froms, thrus, user_id}) {
+async function estimateDataCountMP({ origin, destination, froms, thrus, user_id }) {
     return new Promise((resolve, reject) => {
         let connection;
         try {
@@ -2220,7 +2234,7 @@ async function estimateDataCountMP({origin, destination, froms, thrus, user_id})
 // not use func
 async function buatZip(folderPath, zipFileName) {
     const output = fs.createWriteStream(zipFileName);
-    const archive = archiver('zip', {zlib: {level: 1}});
+    const archive = archiver('zip', { zlib: { level: 1 } });
     // Tangani error supaya tidak crash silent
     archive.on('error', err => {
         throw err;
@@ -2232,11 +2246,11 @@ async function buatZip(folderPath, zipFileName) {
     // Tunggu sampai pipeline selesai (stream selesai)
     await pipeline(archive, output);
     // Setelah zip selesai, hapus folder sumber
-    await fsPromises.rm(folderPath, {recursive: true, force: true});
+    await fsPromises.rm(folderPath, { recursive: true, force: true });
     console.log(`Folder ${folderPath} telah dihapus setelah file ZIP dibuat.`);
 }
 
-async function fetchDataAndExportToExcelbackup({ origin, destination, froms, thrus, user_id , dateStr,jobId}) {
+async function fetchDataAndExportToExcelbackup({ origin, destination, froms, thrus, user_id, dateStr, jobId }) {
     let connection;
     try {
         connection = await oracledb.getConnection(config);
@@ -2407,13 +2421,13 @@ async function fetchDataAndExportToExcelbackup({ origin, destination, froms, thr
         if (connection) {
             try {
                 await connection.close();
-            } catch {}
+            } catch { }
         }
     }
 }
 
 
-async function fetchDataAndExportToExcel({origin, destination, froms, thrus, user_id, dateStr, jobId}) {
+async function fetchDataAndExportToExcel({ origin, destination, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -2442,7 +2456,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
 
             console.log('Menjalankan query data...');
 
-            const result = await connection.execute( `
+            const result = await connection.execute(`
                         SELECT
                             '''' || AWB_NO                                                      AS CONNOTE_NUMBER,
                             TO_CHAR(AWB_DATE, 'DD/MM/YYYY')                         AS CONNOTE_DATE,          -- Format tanggal
@@ -2559,7 +2573,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     "HANDLING FEE",
                     "OTHER FEE",
                     "TOTAL",
-                    "DOWNLOAD DATE"  ];
+                    "DOWNLOAD DATE"];
 
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
@@ -2614,16 +2628,16 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
     });
 }
 async function fetchDataAndExportToExcelTCI({
-                                                origin,
-                                                destination,
-                                                froms,
-                                                thrus,
-                                                user_id,
-                                                TM,
-                                                user_session,
-                                                dateStr,
-                                                jobId
-                                            }) {
+    origin,
+    destination,
+    froms,
+    thrus,
+    user_id,
+    TM,
+    user_session,
+    dateStr,
+    jobId
+}) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -2655,7 +2669,7 @@ async function fetchDataAndExportToExcelTCI({
                 bindParams.TM = TM;
             }
             console.log('Menjalankan query data...');
-            const result = await connection.execute( `
+            const result = await connection.execute(`
                         SELECT '''' || AWB_NO                                                      AS CONNOTE_NUMBER,
 --                      AWB_DATE AS CONNOTE_DATE,
                                TO_CHAR(AWB_DATE, 'DD/MM/YYYY')                         AS AWB_DATE,              -- Format tanggal
@@ -2813,7 +2827,7 @@ async function fetchDataAndExportToExcelTCI({
 }
 
 
-async function fetchDataAndExportToExcelDCIfix({origin, destination, froms, thrus, service, user_id, dateStr, jobId}) {
+async function fetchDataAndExportToExcelDCIfix({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -2825,12 +2839,12 @@ async function fetchDataAndExportToExcelDCIfix({origin, destination, froms, thru
 
             if (origin !== '0') {
                 whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
-                bindParams.origin = origin +'%';
+                bindParams.origin = origin + '%';
             }
             if (destination !== '0') {
 
                 whereClause += ` AND  SUBSTR(DESTINATION,1,3) like :destination `;
-                bindParams.destination = destination +'%' ;
+                bindParams.destination = destination + '%';
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -2992,17 +3006,17 @@ async function fetchDataAndExportToExcelDCIfix({origin, destination, froms, thru
             const zipFileName = path.join(__dirname, 'file_download', `DCIReport_${user_id}_${dateStr}_${timeStr}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', {
-                zlib: {level: 1}
+                zlib: { level: 1 }
             });
 
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
+            fs.rmSync(folderPath, { recursive: true });
             console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
+            resolve({ zipFileName, dataCount }); // Resolve with zip file name and data count
 
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
@@ -3190,7 +3204,7 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
 
             if (service !== '0') {
                 whereClause += ` AND SERVICES_CODE = :service`;
-                bindParams.service = service ;
+                bindParams.service = service;
             }
 
             console.log('Menjalankan query data...');
@@ -3316,7 +3330,7 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
         }
     });
 }
-async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, service, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDCO({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -3483,7 +3497,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
     });
 }
 
-async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelCA({ branch, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         let connectionUpdate;  // koneksi untuk UPDATE (config)
@@ -3588,7 +3602,7 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
                 fs.mkdirSync(folderPath);
                 console.log(`Folder ${dateStr} telah dibuat.`);
             }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            const bar = new ProgressBar(':bar :percent', { total: chunks.length, width: 20 });
 
             let no = 1;
             // Loop through each chunk, create an Excel file, and save it
@@ -3702,18 +3716,18 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
             const zipFileName = path.join(__dirname, 'file_download', `CAReport_${user_id}_${dateStr}_${timeStr}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', {
-                zlib: {level: 1}
+                zlib: { level: 1 }
             });
 
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
+            fs.rmSync(folderPath, { recursive: true });
             console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
             console.log(zipFileName)
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
+            resolve({ zipFileName, dataCount }); // Resolve with zip file name and data count
 
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
@@ -3742,7 +3756,7 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
         }
     });
 }
-async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelCABTM({ branch, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         let connectionUpdate;  // koneksi untuk UPDATE (config)
@@ -3879,7 +3893,7 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
                 fs.mkdirSync(folderPath);
                 console.log(`Folder ${dateStr} telah dibuat.`);
             }
-            const bar = new ProgressBar(':bar :percent', {total: chunks.length, width: 20});
+            const bar = new ProgressBar(':bar :percent', { total: chunks.length, width: 20 });
 
             let no = 1;
             // Loop through each chunk, create an Excel file, and save it
@@ -3999,18 +4013,18 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
             const zipFileName = path.join(__dirname, 'file_download', `CABTHReport_${user_id}_${dateStr}_${timeStr}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', {
-                zlib: {level: 1}
+                zlib: { level: 1 }
             });
 
             archive.pipe(output);
             archive.directory(folderPath, false);
             await archive.finalize();
 
-            fs.rmSync(folderPath, {recursive: true});
+            fs.rmSync(folderPath, { recursive: true });
             console.log(`Folder ${folderPath} telah dihapus setelah di-zip`);
             console.log(zipFileName)
 
-            resolve({zipFileName, dataCount}); // Resolve with zip file name and data count
+            resolve({ zipFileName, dataCount }); // Resolve with zip file name and data count
 
         } catch (err) {
             console.error('Terjadi kesalahan:', err);
@@ -4039,7 +4053,7 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
         }
     });
 }
-async function fetchDataAndExportToExcelRU({origin_awal, destination,services_code, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelRU({ origin_awal, destination, services_code, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -4129,11 +4143,11 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
                     "DESTINASI RESI RETURN",
                     "DESTINATION NAME RETURN",
                     "QTY",
-                    "WEIGHT"  ];
+                    "WEIGHT"];
 
                 worksheet.addRow(['Origin:', origin_awal === '0' ? 'ALL' : origin_awal]).commit();
                 worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
-                worksheet.addRow(['Service Code:',(services_code === '0' || services_code === '%') ? 'ALL' : services_code ]).commit();
+                worksheet.addRow(['Service Code:', (services_code === '0' || services_code === '%') ? 'ALL' : services_code]).commit();
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
                 worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
                 worksheet.addRow(['User Id:', user_id]).commit();
@@ -4184,7 +4198,7 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
         }
     });
 }
-async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -4197,7 +4211,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             if (branch_id !== '0') {
                 //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-                bindParams.branch_id = branch_id ;
+                bindParams.branch_id = branch_id;
             }
 
 
@@ -4266,7 +4280,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
                 if (branch_id !== '%') {
                     worksheet.addRow(['Branch:', branch_id]).commit();
-                }else{
+                } else {
                     worksheet.addRow(['Branch:', 'ALL']).commit();
                 }
                 worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
@@ -4334,7 +4348,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
     });
 }
 
-async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id, dateStr,jobId}) {
+async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id, dateStr, jobId }) {
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
@@ -4348,7 +4362,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             if (branch_id !== '0') {
                 //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-                bindParams.branch_id = branch_id ;
+                bindParams.branch_id = branch_id;
             }
 
             if (froms !== '0' && thrus !== '0') {
@@ -4417,7 +4431,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
                 if (branch_id !== '%') {
                     worksheet.addRow(['Branch:', branch_id]).commit();
-                }else{
+                } else {
                     worksheet.addRow(['Branch:', 'ALL']).commit();
                 }
                 worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
@@ -4719,16 +4733,16 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             summaryNoOps.rows.forEach(row => {
                 const r = worksheet.getRow(rowIndex++);
                 r.values = row;
-                [3,4, 5, 6].forEach(col => r.getCell(col).numFmt = '#,##0');
+                [3, 4, 5, 6].forEach(col => r.getCell(col).numFmt = '#,##0');
             });
 
-            const totalNoOps = calculateTotal(summaryNoOps.rows, [2,3, 4, 5]);
+            const totalNoOps = calculateTotal(summaryNoOps.rows, [2, 3, 4, 5]);
             const totalRowNoOps = worksheet.getRow(rowIndex++);
             totalRowNoOps.values = [
                 '', 'TOTAL', totalNoOps[0], totalNoOps[1], totalNoOps[2], totalNoOps[3], '', ''
 
             ];
-            [3,4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
+            [3, 4, 5, 6].forEach(col => totalRowNoOps.getCell(col).numFmt = '#,##0');
 
             // NO JTR
             rowIndex += 1;
@@ -4773,16 +4787,16 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             summaryNoOpsJTR.rows.forEach(row => {
                 const rnojtr = worksheet.getRow(rowIndex++);
                 rnojtr.values = row;
-                [3,4, 5, 6].forEach(col => rnojtr.getCell(col).numFmt = '#,##0');
+                [3, 4, 5, 6].forEach(col => rnojtr.getCell(col).numFmt = '#,##0');
             });
 
-            const totalNoOpsJTR = calculateTotal(summaryNoOpsJTR.rows, [2,3, 4, 5]);
+            const totalNoOpsJTR = calculateTotal(summaryNoOpsJTR.rows, [2, 3, 4, 5]);
             const totalRowNoOpsJTR = worksheet.getRow(rowIndex++);
             totalRowNoOpsJTR.values = [
                 '', 'TOTAL', totalNoOpsJTR[0], totalNoOpsJTR[1], totalNoOpsJTR[2], totalNoOpsJTR[3], '', ''
 
             ];
-            [3,4, 5, 6].forEach(col => totalRowNoOpsJTR.getCell(col).numFmt = '#,##0');
+            [3, 4, 5, 6].forEach(col => totalRowNoOpsJTR.getCell(col).numFmt = '#,##0');
 
 
             rowIndex += 2;
@@ -5180,7 +5194,7 @@ app.get("/getreporttco", async (req, res) => {
             log_json: clobJson,
         };
 
-        console.log("insert data tco :" +insertValues)
+        console.log("insert data tco :" + insertValues)
         let generatedQuery = insertProcedure;
 
         await connection.execute(insertProcedure, insertValues);
@@ -5330,7 +5344,7 @@ app.get("/getreporttci", async (req, res) => {
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data tci :" +insertValues)
+        console.log("insert data tci :" + insertValues)
 
         // Generate and log the query
 
@@ -5499,7 +5513,7 @@ app.get("/getreportdci", async (req, res) => {
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data dci :" +insertValues)
+        console.log("insert data dci :" + insertValues)
 
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
@@ -5693,7 +5707,7 @@ app.get("/getreportdco", async (req, res) => {
             log_json: clobJson,
         };
 
-        console.log("insert data dco :" +insertValues)
+        console.log("insert data dco :" + insertValues)
 
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
@@ -5989,7 +6003,7 @@ app.get("/getreportru", async (req, res) => {
             branch: branch_id, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data ru :" +insertValues)
+        console.log("insert data ru :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -6120,7 +6134,7 @@ app.get("/getreportdbo", async (req, res) => {
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data DBO :" +insertValues)
+        console.log("insert data DBO :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -6248,7 +6262,7 @@ app.get("/getreportdbona", async (req, res) => {
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data DBONA :" +insertValues)
+        console.log("insert data DBONA :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -6376,7 +6390,7 @@ app.get("/getreportdbonasum", async (req, res) => {
             branch: branch, // Ganti sesuai nama cabang yang sesuai
             log_json: clobJson,
         };
-        console.log("insert data DBONASUM :" +insertValues)
+        console.log("insert data DBONASUM :" + insertValues)
 
         // Replace placeholders directly with bind parameters
         await connection.execute(insertProcedure, insertValues);
@@ -6504,7 +6518,7 @@ app.get("/getreportmp", async (req, res) => {
             log_json: clobJson,
         };
 
-        console.log("Insert data MP :" +insertValues)
+        console.log("Insert data MP :" + insertValues)
 
         await connection.execute(insertProcedure, insertValues);
         await connection.commit();
@@ -7484,10 +7498,10 @@ app.get('/progressdci', (req, res) => {
 app.get('/checkPendingJobs', async (req, res) => {
     try {
         const length = await redis.llen('pending_jobs');
-        res.json({message: `There are ${length} jobs in the pending_jobs queue.`});
+        res.json({ message: `There are ${length} jobs in the pending_jobs queue.` });
     } catch (error) {
         console.error('Error checking pending jobs length:', error);
-        res.status(500).json({error: 'Failed to check pending jobs length'});
+        res.status(500).json({ error: 'Failed to check pending jobs length' });
     }
 });
 
@@ -7496,10 +7510,10 @@ app.get('/getPendingJobs', async (req, res) => {
     try {
         const job = await redis.lpop('pending_jobs');  // Ambil job pertama dari antrian pending
         const jobData = jobs.map(job => JSON.parse(job));  // Parse the JSON data for each job
-        res.json({pendingJobs: jobData});
+        res.json({ pendingJobs: jobData });
     } catch (error) {
         console.error('Error retrieving pending jobs:', error);
-        res.status(500).json({error: 'Failed to retrieve pending jobs'});
+        res.status(500).json({ error: 'Failed to retrieve pending jobs' });
     }
 });
 
@@ -7508,7 +7522,7 @@ app.get("/clean", async (req, res) => {
         /*  clean() mengembalikan array job yang dihapus.
             Kita tangkap untuk mengetahui berapa banyak yang ter‐delete */
         const deletedCompleted = await reportQueue.clean(0, "completed");
-        const deletedFailed    = await reportQueue.clean(0, "failed");
+        const deletedFailed = await reportQueue.clean(0, "failed");
 
         console.log(
             `Job dihapus – completed: ${deletedCompleted.length}, failed: ${deletedFailed.length}`
