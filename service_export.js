@@ -3172,12 +3172,12 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
             let whereClause = "WHERE 1 = 1";
             const bindParams = {};
 
-            if (origin !== '0') {
+            if (origin !== '0' && origin !== '%') {
                 whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin , 1, 3)`;
                 bindParams.origin = origin + '%';
             }
 
-            if (destination !== '0') {
+            if (destination !== '0' && destination !== '%') {
                 whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE SUBSTR(:destination,1,3)`;
                 bindParams.destination = destination + '%';
             }
@@ -3225,7 +3225,13 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                 FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
         AND CNOTE_NO NOT LIKE 'RT%'
         AND CNOTE_NO NOT LIKE 'FW%'
-                      AND SERVICES_CODE NOT IN ('TRC11','TRC13','INTL20')                \`,
+                      AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+        'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+        'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+        'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+        'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+        'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+        'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -3321,12 +3327,12 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             let whereClause = "WHERE 1 = 1";
             const bindParams = {};
 
-            if (origin !== '0') {
+            if (origin !== '0' && origin !== '%') {
                 whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE :origin`;
                 bindParams.origin = origin + '%';
             }
 
-            if (destination !== '0') {
+            if (destination !== '0' && destination !== '%') {
                 whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE :destination`;
                 bindParams.destination = destination + '%';
             }
@@ -3370,9 +3376,14 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                                                      FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN, 1, 3) <> SUBSTR(DESTINATION, 1, 3)
                 AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
                 AND CNOTE_NO NOT LIKE 'FW%' -- Exclude records with CNOTE_NO starting with 'FW'
-                AND SERVICES_CODE NOT IN ('TRC11','TRC13','INTL20')                `,
-                bindParams
-            );
+                AND SERVICES_CODE NOT IN ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+        'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+        'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+        'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+        'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+        'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+        'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
+                `, bindParams);
             console.log('Query selesai, memproses data...');
             const rows = result.rows;
             const chunkSize = 1000000;
@@ -4887,6 +4898,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                 SELECT
                     '''' || AWB_NO AS AWB,
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
+                    TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS AWB_TIME,
                     SERVICES_CODE,
                     CNOTE_WEIGHT,
                     ORIGIN,
@@ -4904,6 +4916,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     OUTBOND_MANIFEST_ROUTE,
                     TRANSIT_MANIFEST_NO,
                     TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY') AS TRANSIT_MANIFEST_DATE,
+                    TO_CHAR(TRANSIT_MANIFEST_DATE, 'HH:MI:SS AM') AS TRANSIT_MANIFEST_TIME,
                     TRANSIT_MANIFEST_ROUTE,
                     MODA,
                     MODA_TYPE
@@ -4940,6 +4953,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     "NO",
                     "CONNOTE NO",
                     "CONNOTE DATE",
+                    "CONNOTE TIME",
                     "SERVICES CODE",
                     "CONNOTE WEIGHT",
                     "ORIGIN",
@@ -4953,6 +4967,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     "OUTBOND MANIFEST ROUTE",
                     "TRANSIT MANIFEST NO",
                     "TRANSIT MANIFEST DATE",
+                    "TRANSIT MANIFEST TIME",
                     "TRANSIT MANIFEST ROUTE",
                     "MODA",
                     "MODA TYPE"
@@ -6504,7 +6519,7 @@ app.get("/getreportmp", async (req, res) => {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:67:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
 
     } catch (err) {
