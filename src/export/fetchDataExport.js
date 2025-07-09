@@ -463,6 +463,13 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                     AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
                     AND CNOTE_NO NOT LIKE 'RT%'
                     AND CNOTE_NO NOT LIKE 'FW%'
+                    AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                    'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                    'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                    'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                    'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                    'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                    'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -614,6 +621,13 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                     AND SERVICES_CODE NOT IN ('CML', 'CTC_CML', 'P2P')
                     AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
                     AND CNOTE_NO NOT LIKE 'FW%' -- Exclude records with CNOTE_NO starting with 'FW'
+                    AND SERVICES_CODE NOT IN ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                    'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                    'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                    'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                    'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                    'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                    'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
                 `,
                 bindParams
             );

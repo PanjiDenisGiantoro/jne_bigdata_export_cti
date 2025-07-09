@@ -249,10 +249,10 @@ async function buildWhereClause(params, mappingKey) {
         const rule = mapping[key];
         const value = params[key];
 
-        if (value && value !== '0') {
+        if (value && value !== '0' || value !== '%' || value !== '' || value !== null) {
             if (rule.condition) whereClause += ` ${rule.condition}`;
             bindParams[rule.bindKey] = rule.format ? rule.format(value) : value;
-        }
+        } 
     }
 
     return { whereClause, bindParams };
