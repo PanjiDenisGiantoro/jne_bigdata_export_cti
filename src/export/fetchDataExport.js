@@ -603,7 +603,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                         END                                             WEIGHT,
                     NVL(AMOUNT, 0) AS AMOUNT,
                     MANIFEST_NO,
-                    TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY HH:MI:SS AM') AS MANIFEST_DATE, -- Format tanggal
+                    TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE, -- Format tanggal
                     TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE, -- Format tanggal
                     NVL(DELIVERY, 0) AS DELIVERY,
                     NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
