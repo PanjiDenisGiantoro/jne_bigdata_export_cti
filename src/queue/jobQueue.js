@@ -1313,7 +1313,7 @@ const processJob = async (job) => {
             }else if(type === 'mp') {
                 await Sentry.startSpan({name: 'Process Job' + job.id, jobId: job.id}, async (span) => {
                     const {origin, destination, froms, thrus, user_id, dateStr, jobId} = job.data;
-
+                    console.log('Processing job with data:', job.data);
                     let zipFileName = '';
                     let completionTime = '';
                     let dataCount = 0;  // Variable to store the number of records processed

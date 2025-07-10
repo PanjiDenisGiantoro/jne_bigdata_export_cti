@@ -71,9 +71,8 @@ router.get('/progresstci', (req, res) => {
 router.get('/progressdci', (req, res) => {
     res.sendFile(__dirname + '/public/progressdci.html');
 });
-
 router.get('/logs', (req, res) => {
-    const logPath = `/Users/abiyyirahinda/Documents/testlog.log`;
+    const logPath = `/root/.pm2/logs/TCOExport-out.log`;
 
     fs.readFile(logPath, 'utf8', (err, data) => {
         if (err) {
@@ -82,12 +81,11 @@ router.get('/logs', (req, res) => {
         }
 
         const lines = data.trim().split('\n');
-        const last100Lines = lines.slice(-150).join('\n');
+        const last100Lines = lines.slice(-50).join('\n');
 
         res.setHeader('Content-Type', 'text/plain');
         res.send(last100Lines || 'Log is empty.');
     });
 });
-
 
 module.exports = router; 

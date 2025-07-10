@@ -930,7 +930,7 @@ async function getReportMP(req, res) {
             fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
         }
 
-        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:67:${user_session}::NO::P78_USER:${user_id}`;
+        const redirectUrl = `https://dash-ctc.jne.co.id:8443/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
         res.redirect(redirectUrl);
     } catch (err) {
         console.error("Error adding job to queue:", err + " " + err.stack + err.line);

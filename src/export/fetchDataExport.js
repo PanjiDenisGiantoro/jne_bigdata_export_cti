@@ -2110,17 +2110,17 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
 
             // let whereClause = `WHERE 1 = 1`;
             // const bindParams = {};
-
+            //
             // if (origin !== '0') {
             //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
             //     bindParams.origin = origin + '%';
             // }
-
+            //
             // if (destination !== '0') {
             //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
             //     bindParams.destination = destination + '%';
             // }
-
+            //
             // if (froms !== '0' && thrus !== '0') {
             //     whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
             //     bindParams.froms = froms;
@@ -2128,7 +2128,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             // }
 
             // Filter marketplace
-            whereClause += ` AND CUST_ID IN ('11666700','80561600','80561601','80514305')`;
+            // whereClause += ` AND CUST_ID IN ('11666700','80561600','80561601','80514305')`;
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
@@ -2159,6 +2159,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                     MODA_TYPE
                 FROM CMS_COST_TRANSIT_V2
                 ${whereClause}
+                    AND CUST_ID IN ('11666700','80561600','80561601','80514305')
             `, bindParams);
 
             console.log('Query selesai, memproses data...');
@@ -2211,8 +2212,8 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                 ];
 
                 // Metadata laporan
-                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
-                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Origin:', origin === '0' || origin === '%' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' || destination === '%' ? 'ALL' : destination]).commit();
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
                 worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
                 worksheet.addRow(['User Id:', user_id]).commit();

@@ -2,3 +2,6 @@
 2025-07-03 16:31:50 | JobID: 4 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: config is not defined
 2025-07-03 16:42:41 | JobID: 5 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-125: "connectString" cannot be empty or undefined. Bequeath connections are not supported in Thin mode
 2025-07-09 13:51:38 | JobID: 37014231810180330 | Origin: BKI | Destination: 0 | UserID: REFACTORLOCAL | Error: service is not defined
+2025-07-09 18:10:03 | JobID: 59383117268739096 | Origin: 0 | Destination: 0 | UserID: PANJI | Error: Assignment to constant variable.
+2025-07-09 18:24:06 | JobID: 255569924781737100 | Origin: % | Destination: % | UserID: ABI | Error: Assignment to constant variable.
+2025-07-09 21:09:25 | JobID: 22834392736388156 | Origin: % | Destination: % | UserID: RIZKIW | Error: Assignment to constant variable.

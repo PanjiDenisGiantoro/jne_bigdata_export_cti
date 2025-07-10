@@ -5,8 +5,8 @@ module.exports = {
             script: 'src/app.js',
             instances: 2,
             exec_mode: 'cluster',
-            node_args: '--max-old-space-size=8192 --expose-gc',
-            max_memory_restart: '3072M',
+            node_args: '--max-old-space-size=28672 --expose-gc',
+            max_memory_restart: '28672M',
             watch: false,
             env: {
                 NODE_ENV: 'production',
