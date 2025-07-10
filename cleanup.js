@@ -1,8 +1,7 @@
 const oracledb = require('oracledb');
 const fs = require('fs');
 const path = require('path');
-const Sentry = require("@sentry/node");
-const {nodeProfilingIntegration} = require("@sentry/profiling-node");
+const { exec } = require('child_process');
 
 const config = {
     user: 'dbctc_v2',
@@ -10,98 +9,103 @@ const config = {
     connectString: '10.8.2.48:1521/ctcv2db'
 };
 
+const logSuccessPath = path.join(__dirname, 'success.log');
+const logErrorPath = path.join(__dirname, 'error.log');
 
-Sentry.init({
-    dsn: "https://911497525f2ba3a60f2ea285b4e82520@o4506467821092864.ingest.us.sentry.io/4509234026184704",
-    integrations: [
-        nodeProfilingIntegration(),
-    ],
-    // Tracing
-    tracesSampleRate: 1.0, //  Capture 100% of the transactions
-    // Set sampling rate for profiling - this is evaluated only once per SDK.init call
-    profileSessionSampleRate: 1.0,
-    // Trace lifecycle automatically enables profiling during active traces
-    profileLifecycle: 'trace',
+function logToFile(filePath, message) {
+    const logMessage = `[${new Date().toISOString()}] ${message}\n`;
+    return fs.promises.appendFile(filePath, logMessage);
+}
+function flushLinuxCache() {
+    return new Promise((resolve, reject) => {
+        exec("sync; echo 3 > /proc/sys/vm/drop_caches", (error, stdout, stderr) => {
+            if (error) {
+                console.error(`Gagal flush cache: ${error.message}`);
+                return reject(error);
+            }
+            if (stderr) {
+                console.warn(`Peringatan saat flush cache: ${stderr}`);
+            }
+            console.log("✅ Cache Linux berhasil di-flush.");
+            resolve();
+        });
+    });
+}
 
-    // Setting this option to true will send default PII data to Sentry.
-    // For example, automatic IP address collection on events
-    sendDefaultPii: true,
-});
 async function cleanupOldRecords() {
     let connection;
+    let updateCount = 0;
 
     try {
         connection = await oracledb.getConnection(config);
 
-        // Now, fetch the filenames from the database
         const fileQuery = `
             SELECT NAME_FILE
             FROM CMS_COST_TRANSIT_V2_LOG
             WHERE download = 0
-              AND created_at < SYSDATE - INTERVAL '2' DAY
+              AND TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+              AND TRANSIT_V2_LOG_DATE_DELETE < SYSDATE - INTERVAL '1' DAY
         `;
+
+        console.log('Executing query:', fileQuery);
 
         const filesToDelete = await connection.execute(fileQuery);
 
-        // Define folder path
         const folderPath = path.join(__dirname, 'file_download');
+        console.log("Folder Path:", folderPath);
 
-        // Loop through the fetched filenames and delete them from the folder
-        for (const row of filesToDelete.rows) {
+        await Promise.all(filesToDelete.rows.map(async (row) => {
             const fileName = row[0];
 
-            // Check if the file name is not null and ends with '.zip'
             if (fileName && fileName.endsWith('.zip')) {
                 const filePath = path.join(folderPath, fileName);
+                console.log("File Path:", filePath);
 
-                // Check if the file exists
-                fs.stat(filePath, (err, stats) => {
-                    if (err) {
-                        console.error('Error checking file stats:', err);
-                        return;
-                    }
+                try {
+                    await fs.promises.stat(filePath);
+                    await fs.promises.unlink(filePath);
 
-                    // Calculate the age of the file in days
-                    const fileAgeInDays = (Date.now() - stats.mtimeMs) / (1000 * 3600 * 24); // in days
+                    const successMsg = `Deleted old zip file: ${fileName}`;
+                    console.log(successMsg);
+                    await logToFile(logSuccessPath, successMsg);
 
-                        fs.unlink(filePath, (unlinkErr) => {
-                            if (unlinkErr) {
-                                console.error('Error deleting file:', unlinkErr);
-                                Sentry.captureException(err); // Capture error with Sentry
-                                return;
-
-                            } else {
-                                console.log(`Deleted old zip file: ${fileName}`);
-                            }
-                        });
-                    // }
-                });
-            }else{
-                console.log(`File name is null or does not end with '.zip': ${fileName}`);
+                    updateCount++;
+                } catch (err) {
+                    const errorMsg = `Error deleting file ${fileName}: ${err.message}`;
+                    console.error(errorMsg);
+                    await logToFile(logErrorPath, errorMsg);
+                }
+            } else {
+                const warnMsg = `File name is null or does not end with '.zip': ${fileName}`;
+                console.log(warnMsg);
+                await logToFile(logErrorPath, warnMsg);
             }
-        }
+        }));
 
-        // After deleting the files, delete the corresponding records from the database
-        const deleteQuery = `
-            DELETE FROM CMS_COST_TRANSIT_V2_LOG
+        const updateQuery = `
+            UPDATE CMS_COST_TRANSIT_V2_LOG
+            SET TRANSIT_V2_LOG_FLAG_DELETE = 'Y'
             WHERE download = 0
-              AND created_at < SYSDATE - INTERVAL '1' DAY
+              AND TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+              AND TRANSIT_V2_LOG_DATE_DELETE < SYSDATE - INTERVAL '1' DAY
         `;
 
-        // Execute the delete query to remove records from the database
-        const result = await connection.execute(deleteQuery);
-        await connection.commit();
-
-        console.log(`Deleted ${result.rowsAffected} old records from CMS_COST_TRANSIT_V2_LOG.`);
+        const result = await connection.execute(updateQuery, [], { autoCommit: true });
+        const updateMsg = `Rows updated: ${result.rowsAffected}`;
+        console.log(updateMsg);
+        await logToFile(logSuccessPath, updateMsg);
 
     } catch (error) {
-        console.error('Error during cleanup:', error);
-        Sentry.captureException(error); // Capture error with Sentry
-
+        const errMsg = `Error during cleanup: ${error.message}`;
+        console.error(errMsg);
+        await logToFile(logErrorPath, errMsg);
     } finally {
         if (connection) {
             await connection.close();
+
+            await flushLinuxCache();
         }
+
     }
 }
 

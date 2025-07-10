@@ -15,28 +15,28 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { origin, destination, froms, thrus }, 'TCO'
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { origin, destination, froms, thrus }, 'TCO'
+            // )
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // if (origin !== '0') {
-            //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
-            //     bindParams.origin = origin + '%';
-            // }
+            if (origin !== '0') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
+                bindParams.origin = origin + '%';
+            }
 
-            // if (destination !== '0') {
-            //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
-            //     bindParams.destination = destination + '%';
-            // }
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
+                bindParams.destination = destination + '%';
+            }
 
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND trunc(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND trunc(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
             console.log('Menjalankan query data...');
 
@@ -210,33 +210,33 @@ async function fetchDataAndExportToExcelTCI({
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { origin, destination, froms, thrus, TM }, 'TCI'
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { origin, destination, froms, thrus, TM }, 'TCI'
+            // )
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // if (origin !== '0') {
-            //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
-            //     bindParams.origin = origin + '%';
-            // }
+            if (origin !== '0' ) {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
+                bindParams.origin = origin + '%';
+            }
 
-            // if (destination !== '0') {
-            //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
-            //     bindParams.destination = destination + '%';
-            // }
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
+                bindParams.destination = destination + '%';
+            }
 
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND trunc(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND trunc(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
-            // if (TM !== '0') {
-            //     whereClause += ` AND SUBSTR(ORIGIN_TM, 1, 3) = :TM`;
-            //     bindParams.TM = TM;
-            // }
+            if (TM !== '0') {
+                whereClause += ` AND SUBSTR(ORIGIN_TM, 1, 3) = :TM`;
+                bindParams.TM = TM;
+            }
             console.log('Menjalankan query data...');
             const result = await connection.execute( `
                 SELECT '''' || AWB_NO AS CONNOTE_NUMBER,
@@ -402,33 +402,33 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { origin, destination, froms, thrus, service }, 'DCI'    
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { origin, destination, froms, thrus, service }, 'DCI'
+            // )
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // if (origin !== '0') {
-            //     whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin , 1, 3)`;
-            //     bindParams.origin = origin + '%';
-            // }
+            if (origin !== '0') {
+                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE SUBSTR(:origin , 1, 3)`;
+                bindParams.origin = origin + '%';
+            }
 
-            // if (destination !== '0') {
-            //     whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE SUBSTR(:destination,1,3)`;
-            //     bindParams.destination = destination + '%';
-            // }
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE SUBSTR(:destination,1,3)`;
+                bindParams.destination = destination + '%';
+            }
 
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
-            // if (service !== '0') {
-            //     whereClause += ` AND SERVICES_CODE = :service`;
-            //     bindParams.service = service ;
-            // }
+            if (service !== '0' ) {
+                whereClause += ` AND SERVICES_CODE = :service`;
+                bindParams.service = service ;
+            }
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
@@ -440,16 +440,12 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                     ZONA_DESTINATION,
                     SERVICES_CODE,
                     NVL(QTY, 0) AS QTY,
-                    TO_CHAR(
-                            CASE
-                                WHEN WEIGHT = 0 THEN 0
-                                WHEN WEIGHT < 1 THEN 1
-                                WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
-                                ELSE FLOOR(WEIGHT)
-                                END,
-                            '999G999G999',
-                            'NLS_NUMERIC_CHARACTERS = ''.,'''
-                    ) AS WEIGHT,
+                       CASE
+                           WHEN WEIGHT = 0 THEN 0
+                           WHEN WEIGHT < 1 THEN 1
+                           WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                           ELSE FLOOR(WEIGHT)
+                           END                                             WEIGHT,
                     NVL(AMOUNT, 0) AS AMOUNT,
                     MANIFEST_NO,
                     TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY') AS MANIFEST_DATE,
@@ -458,7 +454,9 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                     NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
                     NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
                     NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
-                    NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
+                    NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT,
+                    FLAG_MULTI,
+                    FLAG_CANCEL
                 FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
                     AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
                     AND CNOTE_NO NOT LIKE 'RT%'
@@ -498,7 +496,8 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
                 const headers = [
                     "NO", "CNOTE NO", "CNOTE DATE", "TIME CNOTE DATE", "ORIGIN", "DESTINATION", "ZONA DESTINATION",
                     "SERVICES CODE", "QTY", "WEIGHT", "AMOUNT", "MANIFEST NO", "MANIFEST DATE", "TIME MANIFEST DATE",
-                    "DELIVERY", "DELIVERY SPS", "BIAYA TRANSIT", "BIAYA PENERUS", "BIAYA PENERUS NEXT KG"
+                    "DELIVERY", "DELIVERY SPS", "BIAYA TRANSIT", "BIAYA PENERUS", "BIAYA PENERUS NEXT KG",
+                    "FLAG MULTI", "FLAG CANCEL"
                 ];
 
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
@@ -562,34 +561,34 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
+            //
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { origin, destination, froms, thrus, service, }, 'DCO'
+            // )
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { origin, destination, froms, thrus, service, }, 'DCO'
-            )
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            if (origin !== '0' ) {
+                whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE :origin`;
+                bindParams.origin = origin + '%';
+            }
 
-            // if (origin !== '0') {
-            //     whereClause += ` AND SUBSTR(ORIGIN, 1, 3) LIKE :origin`;
-            //     bindParams.origin = origin + '%';
-            // }
+            if (destination !== '0') {
+                whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE :destination`;
+                bindParams.destination = destination + '%';
+            }
 
-            // if (destination !== '0') {
-            //     whereClause += ` AND SUBSTR(DESTINATION,1,3) LIKE :destination`;
-            //     bindParams.destination = destination + '%';
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
-
-            // if (service !== '0') {
-            //     whereClause += ` AND SERVICES_CODE = :service`;
-            //     bindParams.service = service;
-            // }
+            if (service !== '0') {
+                whereClause += ` AND SERVICES_CODE = :service`;
+                bindParams.service = service;
+            }
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
@@ -616,7 +615,9 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                     NVL(DELIVERY_SPS, 0) AS DELIVERY_SPS,
                     NVL(TRANSIT, 0) AS BIAYA_TRANSIT,
                     NVL(LINEHAUL_FIRST, 0) AS LINEHAUL_FIRST,
-                    NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT
+                    NVL(LINEHAUL_NEXT, 0) AS LINEHAUL_NEXT,
+                    FLAG_MULTI,
+                    FLAG_CANCEL
                 FROM CMS_COST_DELIVERY_V2 ${whereClause} AND SUBSTR(ORIGIN, 1, 3) <> SUBSTR(DESTINATION, 1, 3)
                     AND SERVICES_CODE NOT IN ('CML', 'CTC_CML', 'P2P')
                     AND CNOTE_NO NOT LIKE 'RT%'  -- Exclude records with CNOTE_NO starting with 'RT'
@@ -673,7 +674,9 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
                     "DELIVERY SPS",
                     "BIAYA TRANSIT",
                     "PENERUS",
-                    "BIAYA PENERUS NEXT KG"
+                    "BIAYA PENERUS NEXT KG",
+                    "FLAG_MULTI",
+                    "FLAG_CANCEL"
                 ];
 
                 worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
@@ -739,22 +742,22 @@ async function fetchDataAndExportToExcelCA({branch, froms, thrus, user_id, dateS
             connectionUpdate = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { branch, froms, thrus }, 'CA'
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { branch, froms, thrus }, 'CA'
+            // )
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // if (branch !== '0') {
-            //     whereClause += ` AND C.CNOTE_BRANCH_ID = :branch`;
-            //     bindParams.branch = branch;
-            // }
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND TRUNC(C.CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-RRRR') AND TO_DATE(:thrus, 'DD-MON-RRRR')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (branch !== '0') {
+                whereClause += ` AND C.CNOTE_BRANCH_ID = :branch`;
+                bindParams.branch = branch;
+            }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND TRUNC(C.CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-RRRR') AND TO_DATE(:thrus, 'DD-MON-RRRR')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
             const result = await connection.execute(`
                 SELECT
@@ -1001,22 +1004,22 @@ async function fetchDataAndExportToExcelCABTM({branch, froms, thrus, user_id, da
             connectionUpdate = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { branch, froms, thrus }, 'CABTM'
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { branch, froms, thrus }, 'CABTM'
+            // )
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // if (branch !== '0') {
-            //     whereClause += ` AND C.CNOTE_BRANCH_ID = :branch`;
-            //     bindParams.branch = branch;
-            // }
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND TRUNC(C.CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-RRRR') AND TO_DATE(:thrus, 'DD-MON-RRRR')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (branch !== '0') {
+                whereClause += ` AND C.CNOTE_BRANCH_ID = :branch`;
+                bindParams.branch = branch;
+            }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND TRUNC(C.CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-RRRR') AND TO_DATE(:thrus, 'DD-MON-RRRR')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
 
             const result = await connection.execute(`
@@ -1302,33 +1305,33 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { origin_awal, destination, froms, thrus, services_code }, 'RU'
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { origin_awal, destination, froms, thrus, services_code }, 'RU'
+            // )
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // if (origin_awal !== '0') {
-            //     whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
-            //     bindParams.origin_awal = origin_awal + '%';
-            // }
+            if (origin_awal !== '0' ) {
+                whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
+                bindParams.origin_awal = origin_awal + '%';
+            }
 
-            // if (destination !== '0') {
-            //     whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
-            //     bindParams.destination = destination + '%';
-            // }
+            if (destination !== '0' ) {
+                whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
+                bindParams.destination = destination + '%';
+            }
 
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += "AND trunc(RT_CRDATE_RT) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += "AND trunc(RT_CRDATE_RT) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
-            // if (services_code !== '0') {
-            //     whereClause += "  AND RT_SERVICES_CODE LIKE :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
-            //     bindParams.services_code = services_code + '%';
-            // }
+            if (services_code !== '0') {
+                whereClause += "  AND RT_SERVICES_CODE LIKE :services_code ";  // ganti SERVICE_CODES jadi SERVICES_CODE
+                bindParams.services_code = services_code + '%';
+            }
 
             console.log('Menjalankan query data...');
             const result = await connection.execute(`SELECT
@@ -1451,25 +1454,25 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
+            //
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { branch_id, froms, thrus }, 'DBO'
+            // )
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { branch_id, froms, thrus }, 'DBO'
-            )
-
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
-            // if (branch_id !== '0') {
-            //     //     like SUBSTR(BRANCH_ID,1,3)
-            //     whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-            //     bindParams.branch_id = branch_id ;
-            // }
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
+            if (branch_id !== '0' ) {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
+            }
 
 
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
 
             console.log('Menjalankan query data...');
@@ -1591,25 +1594,25 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
+            //
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { branch_id, froms, thrus }, 'DBONA'
+            // )
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { branch_id, froms, thrus }, 'DBONA'
-            )
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
+            if (branch_id !== '0' ) {
+                //     like SUBSTR(BRANCH_ID,1,3)
+                whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
+                bindParams.branch_id = branch_id ;
+            }
 
-            // if (branch_id !== '0') {
-            //     //     like SUBSTR(BRANCH_ID,1,3)
-            //     whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
-            //     bindParams.branch_id = branch_id ;
-            // }
-
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
 
             console.log('Menjalankan query data...');
@@ -1742,25 +1745,26 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
     return new Promise(async (resolve, reject) => {
         let connection;
         try {
+            //
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { branch_id, froms, thrus }, 'DBONASUM'
+            // )
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { branch_id, froms, thrus }, 'DBONASUM'
-            )
+            let whereClause = "WHERE 1 = 1";
+            const bindParams = {};
 
-            // let whereClause = "WHERE 1 = 1";
-            // const bindParams = {};
 
-            // // Kondisi untuk branch_id
-            // if (branch_id !== '0') {
-            //     whereClause += " AND SUBSTR(BRANCH_ID, 1, 3) = :branch_id ";
-            //     bindParams.branch_id = branch_id;
-            // }
-            // // Kondisi untuk periode tanggal
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += "AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')";
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            // Kondisi untuk branch_id
+            if (branch_id !== '0' ) {
+                whereClause += " AND SUBSTR(BRANCH_ID, 1, 3) = :branch_id ";
+                bindParams.branch_id = branch_id;
+            }
+            // Kondisi untuk periode tanggal
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += "AND TRUNC(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')";
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
             function calculateTotal(rows, indices) {
                 const totals = new Array(indices.length).fill(0);
@@ -1834,7 +1838,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             summaryOps.rows.forEach(row => {
                 const r = worksheet.getRow(rowIndex++);
                 r.values = row;
-                [2, 4, 5, 6, 7, 11].forEach(col => r.getCell(col).numFmt = '#,##0');
+                [2, 4, 5, 6, 7,8, 11].forEach(col => r.getCell(col).numFmt = '#,##0');
             });
 
             const totalOps = calculateTotal(summaryOps.rows, [1, 3, 4, 5, 6, 7, 10]);
@@ -1843,7 +1847,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 'TOTAL', totalOps[0], '', totalOps[1], totalOps[2],
                 totalOps[3], totalOps[4], totalOps[5], '', '', totalOps[6]
             ];
-            [2, 4, 5, 6, 7, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
+            [2, 4, 5, 6, 7,8, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
 
             // jtr
             rowIndex += 1;
@@ -1891,7 +1895,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             summaryOpsJTR.rows.forEach(row => {
                 const rjtr = worksheet.getRow(rowIndex++);
                 rjtr.values = row;
-                [2, 4, 5, 6, 7, 11].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
+                [2, 4, 5, 6, 7,8, 11].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
             });
 
             const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 7, 10]);
@@ -1900,7 +1904,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 'TOTAL', totalOpsJTR[0], '', totalOpsJTR[1], totalOpsJTR[2],
                 totalOpsJTR[3], totalOpsJTR[4], totalOpsJTR[5], '', '', totalOpsJTR[6]
             ];
-            [2, 4, 5, 6, 7, 11].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
+            [2, 4, 5, 6, 7,8, 11].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
 
 
             // === TABEL SUMMARY NO OPS ===
@@ -2104,28 +2108,28 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
 
-            const { whereClause, bindParams } = await buildWhereClause(
-                { origin, destination, froms, thrus }, 'MP'
-            )
+            // const { whereClause, bindParams } = await buildWhereClause(
+            //     { origin, destination, froms, thrus }, 'MP'
+            // )
 
-            // let whereClause = `WHERE 1 = 1`;
-            // const bindParams = {};
-            //
-            // if (origin !== '0') {
-            //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
-            //     bindParams.origin = origin + '%';
-            // }
-            //
-            // if (destination !== '0') {
-            //     whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
-            //     bindParams.destination = destination + '%';
-            // }
-            //
-            // if (froms !== '0' && thrus !== '0') {
-            //     whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
-            //     bindParams.froms = froms;
-            //     bindParams.thrus = thrus;
-            // }
+            let whereClause = `WHERE 1 = 1`;
+            const bindParams = {};
+
+            if (origin !== '0' || origin !== '%') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
+                bindParams.origin = origin + '%';
+            }
+
+            if (destination !== '0' || destination !== '%') {
+                whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
+                bindParams.destination = destination + '%';
+            }
+
+            if (froms !== '0' && thrus !== '0') {
+                whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                bindParams.froms = froms;
+                bindParams.thrus = thrus;
+            }
 
             // Filter marketplace
             // whereClause += ` AND CUST_ID IN ('11666700','80561600','80561601','80514305')`;

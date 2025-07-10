@@ -12,10 +12,10 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
                     connection = conn;
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
-                    if (origin !== '0') {
+                    if (origin !== '0' ) {
                         whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;                        bindParams.origin = origin + '%';
                     }
-                    if (destination !== '0') {
+                    if (destination !== '0' ) {
                         whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;                        bindParams.destination = destination + '%';
                     }
 
@@ -72,12 +72,12 @@ async function estimateDataCountTCI({origin, destination, froms, thrus, user_id,
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
 
-                    if (origin !== '0') {
+                    if (origin !== '0' ) {
                         whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
                         bindParams.origin = origin + '%';
                     }
 
-                    if (destination !== '0') {
+                    if (destination !== '0' ) {
                         whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
                         bindParams.destination = destination + '%';
                     }
@@ -88,7 +88,7 @@ async function estimateDataCountTCI({origin, destination, froms, thrus, user_id,
                         bindParams.thrus = thrus;
                     }
 
-                    if (TM !== '0') {
+                    if (TM !== '0' ) {
                         whereClause += ` AND SUBSTR(ORIGIN_TM, 1, 3) = :TM`;
                         bindParams.TM = TM;
                     }
@@ -138,12 +138,12 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
 
-                    if (origin !== '0') {
+                    if (origin !== '0' ) {
                         whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
                         bindParams.origin = origin + '%' ;
                     }
 
-                    if (destination !== '0') {
+                    if (destination !== '0' ) {
                         whereClause += ` AND SUBSTR(DESTINATION, 1, 3) like :destination`;
                         bindParams.destination = destination + '%' ;
                     }
@@ -154,7 +154,7 @@ async function estimateDataCountDCI({origin, destination, froms, thrus, service,
                         bindParams.thrus = thrus;
                     }
 
-                    if (service !== '0') {
+                    if (service !== '0' ) {
                         whereClause += ` AND SERVICE_CODE = :service`;
                         bindParams.service = service;
                     }
@@ -206,12 +206,12 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
 
-                    if (origin !== '0') {
+                    if (origin !== '0' ) {
                         whereClause += ` AND SUBSTR(ORIGIN, 1, 3) like :origin`;
                         bindParams.origin = origin + '%';
                     }
 
-                    if (destination !== '0') {
+                    if (destination !== '0' ) {
                         whereClause += ` AND SUBSTR(DESTINATION, 1, 3) like :destination`;
                         bindParams.destination = destination + '%';
                     }
@@ -222,7 +222,7 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                         bindParams.thrus = thrus;
                     }
 
-                    if (service !== '0') {
+                    if (service !== '0' ) {
                         whereClause += ` AND SERVICES_CODE = :service`;
                         bindParams.service = service;
                     }
@@ -268,7 +268,7 @@ async function estimateDataCountCA_({branch, froms, thrus, user_id}) {
                     let whereClause = "WHERE 1 = 1";
                     const bindParams = {};
 
-                    if (branch !== '0') {
+                    if (branch !== '0' ) {
                         whereClause += ` AND C.CNOTE_BRANCH_ID = :branch`;
                         bindParams.branch = branch ;
                     }
@@ -437,7 +437,7 @@ async function estimateDataCountRU({origin_awal, destination, services_code, fro
                 bindParams.origin_awal = origin_awal + '%';
             }
 
-            if (destination !== '0') {
+            if (destination !== '0' ) {
                 whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
                 bindParams.destination = destination + '%';
             }
@@ -517,7 +517,7 @@ async function estimateDataCountDBONA({  branch_id, froms, thrus, user_id }) {
             const bindParams = {};
 
 
-            if (branch_id !== '0') {
+            if (branch_id !== '0' ) {
                 //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
                 bindParams.branch_id = branch_id ;
@@ -559,7 +559,7 @@ async function estimateDataCountMP({origin, destination, froms, thrus, user_id})
                         whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
                         bindParams.origin = origin + '%';
                     }
-                    if (destination !== '0') {
+                    if (destination !== '0' ) {
                         whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
                         bindParams.destination = destination + '%';
                     }

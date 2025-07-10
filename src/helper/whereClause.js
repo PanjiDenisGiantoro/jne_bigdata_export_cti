@@ -77,7 +77,7 @@ const whereClauseMappings = {
         TM: {
             condition: `AND SUBSTR(ORIGIN_TM, 1, 3) LIKE :TM`,
             bindKey: 'TM',
-            format: value => value
+            format: value => value + '%'
         }
     },
     TCO: {
