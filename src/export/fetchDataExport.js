@@ -2115,12 +2115,12 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             let whereClause = `WHERE 1 = 1`;
             const bindParams = {};
 
-            if (origin !== '0' || origin !== '%') {
+            if (origin !== '0') {
                 whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 1, 3) LIKE :origin`;
                 bindParams.origin = origin + '%';
             }
 
-            if (destination !== '0' || destination !== '%') {
+            if (destination !== '0') {
                 whereClause += ` AND SUBSTR(OUTBOND_MANIFEST_ROUTE, 9, 3) LIKE :destination`;
                 bindParams.destination = destination + '%';
             }
