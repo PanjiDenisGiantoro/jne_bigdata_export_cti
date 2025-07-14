@@ -1825,6 +1825,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                     ${whereClause}
                     AND COST_OPS IS NOT NULL
                     AND SERVICES_CODE NOT IN ('JTR<130',
+                        'JTR>200',
                         'JTR>130',
                         'JTR23',
                         'CTCJTR23',
@@ -1881,6 +1882,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                         AND SERVICES_CODE IN ('JTR<130',
                         'JTR>130',
                         'JTR23',
+                        'JTR>200',
                         'CTCJTR23',
                         'CTCTRC11',
                         'CTCJTR5_23',
