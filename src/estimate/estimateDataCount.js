@@ -565,18 +565,15 @@ async function estimateDataCountMP({origin, destination, froms, thrus, user_id})
                     }
 
                     if (froms !== '0' && thrus !== '0') {
-                        whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                        whereClause += ` AND TRUNC(CONNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
                         bindParams.froms = froms;
                         bindParams.thrus = thrus;
                     }
 
-                    // Filter khusus marketplace
-                    whereClause += ` AND CUST_ID IN ('11666700', '80561600', '80561601', '80514305')`;
-
                     // Final query
                     const sql = `
                         SELECT COUNT(*) AS DATA_COUNT
-                        FROM CMS_COST_TRANSIT_V2
+                        FROM DBCTC_V2.REP_BIAYA_ANGKUT
                         ${whereClause}
                     `;
 

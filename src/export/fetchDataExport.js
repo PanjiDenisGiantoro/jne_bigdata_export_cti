@@ -2126,45 +2126,77 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             }
 
             if (froms !== '0' && thrus !== '0') {
-                whereClause += ` AND TRUNC(AWB_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
+                whereClause += ` AND TRUNC(CONNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY')`;
                 bindParams.froms = froms;
                 bindParams.thrus = thrus;
             }
 
-            // Filter marketplace
-            // whereClause += ` AND CUST_ID IN ('11666700','80561600','80561601','80514305')`;
-
             console.log('Menjalankan query data...');
+            // const resultOld = await connection.execute(`
+            //     SELECT
+            //         '''' || AWB_NO AS AWB,
+            //         TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
+            //         TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS AWB_TIME,
+            //         SERVICES_CODE,
+            //         CNOTE_WEIGHT,
+            //         ORIGIN,
+            //         DESTINATION,
+            //         CUST_ID,
+            //         CASE
+            //             WHEN CUST_ID = '80514305' THEN 'SHOPEE'
+            //             WHEN CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
+            //             ELSE 'OTHER'
+            //             END AS MARKETPLACE,
+            //         '''' || BAG_NO AS BAG_NO,
+            //         PRORATED_WEIGHT,
+            //         OUTBOND_MANIFEST_NO,
+            //         TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE,
+            //         OUTBOND_MANIFEST_ROUTE,
+            //         TRANSIT_MANIFEST_NO,
+            //         TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY') AS TRANSIT_MANIFEST_DATE,
+            //         TO_CHAR(TRANSIT_MANIFEST_DATE, 'HH:MI:SS AM') AS TRANSIT_MANIFEST_TIME,
+            //         TRANSIT_MANIFEST_ROUTE,
+            //         MODA,
+            //         MODA_TYPE
+            //     FROM CMS_COST_TRANSIT_V2
+            //     ${whereClause}
+            //         AND CUST_ID IN ('11666700','80561600','80561601','80514305')
+            // `, bindParams);
+
             const result = await connection.execute(`
                 SELECT
-                    '''' || AWB_NO AS AWB,
-                    TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE,
-                    TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS AWB_TIME,
-                    SERVICES_CODE,
-                    CNOTE_WEIGHT,
-                    ORIGIN,
-                    DESTINATION,
-                    CUST_ID,
-                    CASE
-                        WHEN CUST_ID = '80514305' THEN 'SHOPEE'
-                        WHEN CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
-                        ELSE 'OTHER'
-                        END AS MARKETPLACE,
-                    '''' || BAG_NO AS BAG_NO,
-                    PRORATED_WEIGHT,
-                    OUTBOND_MANIFEST_NO,
-                    TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE,
-                    OUTBOND_MANIFEST_ROUTE,
-                    TRANSIT_MANIFEST_NO,
-                    TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY') AS TRANSIT_MANIFEST_DATE,
-                    TO_CHAR(TRANSIT_MANIFEST_DATE, 'HH:MI:SS AM') AS TRANSIT_MANIFEST_TIME,
-                    TRANSIT_MANIFEST_ROUTE,
-                    MODA,
-                    MODA_TYPE
-                FROM CMS_COST_TRANSIT_V2
+                BRANCH_ID,
+                ''''||CONNOTE_NO as CONNOTE_NO,
+                TO_CHAR(CONNOTE_DATE, 'DD/MM/YYYY') AS CONNOTE_DATE,
+                TO_CHAR(CONNOTE_DATE, 'HH:MI:SS AM') AS CONNOTE_TIME,
+                CONNOTE_ROUTE_CODE,
+                SERVICE,
+                OUTBOND_MANIFEST,
+                TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE,
+                TO_CHAR(OUTBOND_MANIFEST_DATE, 'HH:MI:SS AM') AS OUTBOND_MANIFEST_TIME,
+                OUTBOND_MANIFEST_ROUTE,
+                TRANSIT_MANIFEST,
+                TRANSIT_MANIFEST_ROUTE,
+                TO_CHAR(TRANSIT_MANIFEST_DATE, 'DD/MM/YYYY') AS TRANSIT_MANIFEST_DATE,
+                TO_CHAR(TRANSIT_MANIFEST_DATE, 'HH:MI:SS AM') AS TRANSIT_MANIFEST_TIME,
+                SMU_NO,
+                SMU_ROUTE,
+                BRANCH_TRANSPORTER,
+                SMU_MODA,
+                SMU_MODA_TYPE,
+                ''''||BAG_NO AS BAG_NO,
+                ACTUAL_BAG_WEIGHT,
+                PRORATED_WEIGHT,
+                CONNOTE_CUST_ID,
+                CASE 
+                    WHEN CONNOTE_CUST_ID = '80514305' THEN 'SHOPEE'
+                    WHEN CONNOTE_CUST_ID IN ('11666700','80561600','80561601') THEN 'TOKOPEDIA'
+                    ELSE 'OTHER'
+                END MARKETPLACE,
+                PRORATED_WEIGHT * NVL(DBCTC_V2.F_GET_BIAYA_ANGKUT_MP (CONNOTE_CUST_ID, CONNOTE_ROUTE_CODE,SERVICE),0) AS BIAYA_ANGKUT
+                FROM DBCTC_V2.REP_BIAYA_ANGKUT       
                 ${whereClause}
-                    AND CUST_ID IN ('11666700','80561600','80561601','80514305')
-            `, bindParams);
+            `, bindParams)
 
             console.log('Query selesai, memproses data...');
 
@@ -2193,26 +2225,31 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
                 // Header sesuai dengan label tampilan website
                 const headers = [
                     "NO",
+                    "BRANCH ID",
                     "CONNOTE NO",
                     "CONNOTE DATE",
                     "CONNOTE TIME",
+                    "CONNOTE ROUTE CODE",
                     "SERVICES CODE",
-                    "CONNOTE WEIGHT",
-                    "ORIGIN",
-                    "DESTINATION",
-                    "CUST ID",
-                    "MARKETPLACE",
-                    "BAG NO",
-                    "PRORATED WEIGHT",
                     "OUTBOND MANIFEST NO",
                     "OUTBOND MANIFEST DATE",
+                    "OUTBOND MANIFEST TIME",
                     "OUTBOND MANIFEST ROUTE",
                     "TRANSIT MANIFEST NO",
+                    "TRANSIT MANIFEST ROUTE",
                     "TRANSIT MANIFEST DATE",
                     "TRANSIT MANIFEST TIME",
-                    "TRANSIT MANIFEST ROUTE",
+                    "SMU NO",
+                    "SMU ROUTE",
+                    "BRANCH TRANSPORTER",
                     "MODA",
-                    "MODA TYPE"
+                    "MODA TYPE",
+                    "BAG NO",
+                    "BAG WEIGHT",
+                    "PRORATED WEIGHT",
+                    "CUST ID",
+                    "MARKETPLACE",
+                    "BIAYA ANGKUT"
                 ];
 
                 // Metadata laporan
