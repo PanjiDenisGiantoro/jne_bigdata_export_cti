@@ -313,7 +313,7 @@ async function fetchDataAndExportToExcelTCI({
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
-                    "CUST_ID",
+                    "CUST ID",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
