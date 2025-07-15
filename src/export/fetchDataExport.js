@@ -45,6 +45,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     '''' || AWB_NO AS CONNOTE_NUMBER,
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS CONNOTE_DATE, -- Format tanggal
                     TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS TIME_CONNOTE_DATE, -- Format tanggal
+                    CUST_ID,
                     SERVICES_CODE AS SERVICE_CONNOTE,
                     OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
                     TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE, -- Format tanggal
@@ -76,7 +77,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                 AND CNOTE_WEIGHT > 0
                 GROUP BY
-                    ROWNUM, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
+                    ROWNUM, CUST_ID, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
                     BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
                     ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
                     SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
@@ -111,6 +112,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
+                    "CUST_ID",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
@@ -243,6 +245,7 @@ async function fetchDataAndExportToExcelTCI({
                     -- AWB_DATE AS CONNOTE_DATE,
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE, -- Format tanggal
                     TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS TIME_AWB_DATE, -- Format tanggal
+                    CUST_ID,
                     SERVICES_CODE AS SERVICE_CONNOTE,
                     OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
                     TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE, -- Format tanggal
@@ -274,7 +277,7 @@ async function fetchDataAndExportToExcelTCI({
                     TO_CHAR(SYSDATE  , 'HH:MI:SS AM') AS TIME_DOWNLOAD_DATE
                 FROM CMS_COST_TRANSIT_V2 ${whereClause} AND OUTBOND_MANIFEST_ROUTE <> TRANSIT_MANIFEST_ROUTE
                     AND CNOTE_WEIGHT > 0
-                        GROUP BY
+                        GROUP BY CUST_ID,
                         OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
                         BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
                         ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
@@ -310,6 +313,7 @@ async function fetchDataAndExportToExcelTCI({
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
+                    "CUST_ID",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
