@@ -112,7 +112,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
-                    "CUST_ID",
+                    "CUST ID",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
@@ -313,7 +313,7 @@ async function fetchDataAndExportToExcelTCI({
                     "CONNOTE NUMBER",
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
-                    "CUST_ID",
+                    "CUST ID",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
@@ -1828,13 +1828,13 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 FROM CMS_COST_DELIVERY_v2
                     ${whereClause}
                     AND COST_OPS IS NOT NULL
-                    AND SERVICES_CODE NOT IN ('JTR<130',
-                        'JTR>200',
-                        'JTR>130',
-                        'JTR23',
-                        'JTR',
-                        'CTCJTR23',
-                        'CTCTRC11')
+             AND SERVICES_CODE IN (
+                    SELECT SERVICE_CODE
+                    FROM CMS_SERVICE@DB219
+                    WHERE SERVICE_CATEGORY = 'EXP'   OR SERVICE_CATEGORY IS NULL
+                    AND SERVICE_ACTIVE ='Y'
+                    )
+                    and services_code not in ('CTCTRC11')
                 AND SERVICES_CODE NOT LIKE '%INT%'
                 AND CNOTE_NO NOT LIKE 'RT%'
                 AND CNOTE_NO NOT LIKE 'FW%'
@@ -1884,16 +1884,22 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 FROM CMS_COST_DELIVERY_v2
                     ${whereClause}
                     AND COST_OPS IS NOT NULL
-                        AND SERVICES_CODE IN ('JTR<130',
-                        'JTR>130',
-                        'JTR23',
-                        'JTR>200',
-                        'CTCJTR23',
-                        'CTCTRC11',
-                        'CTCJTR5_23',
-                        'JTR5_23',
-                        'CRGTK')
+--                         AND SERVICES_CODE IN ('JTR<130',
+--                         'JTR>130',
+--                         'JTR23',
+--                         'JTR>200',
+--                         'CTCJTR23',
+--                         'CTCTRC11',
+--                         'CTCJTR5_23',
+--                         'JTR5_23',
+--                         'CRGTK')
                     AND SERVICES_CODE NOT LIKE '%INT%'
+                     AND SERVICES_CODE IN (
+                    SELECT SERVICE_CODE
+                    FROM CMS_SERVICE@DB219
+                    WHERE SERVICE_CATEGORY = 'LOG'  
+                    AND SERVICE_ACTIVE ='Y'
+                    )
                     AND CNOTE_NO NOT LIKE 'RT%'
                     AND CNOTE_NO NOT LIKE 'FW%'
                     GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
@@ -1941,14 +1947,21 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 FROM CMS_COST_DELIVERY_V2
                     ${whereClause}
                     AND COST_OPS IS NULL
-                    AND SERVICES_CODE NOT IN ('JTR<130',
-                        'JTR>130',
-                        'JTR23',
-                        'CTCJTR23',
-                        'CTCTRC11',
-                        'CTCJTR5_23',
-                        'JTR5_23',
-                        'CRGTK')
+--                     AND SERVICES_CODE NOT IN ('JTR<130',
+--                         'JTR>130',
+--                         'JTR23',
+--                         'CTCJTR23',
+--                         'CTCTRC11',
+--                         'CTCJTR5_23',
+--                         'JTR5_23',
+--                         'CRGTK')
+                         AND SERVICES_CODE IN (
+                    SELECT SERVICE_CODE
+                    FROM CMS_SERVICE@DB219
+                    WHERE SERVICE_CATEGORY = 'EXP'   OR SERVICE_CATEGORY IS NULL
+                    AND SERVICE_ACTIVE ='Y'
+                    )
+                    and services_code not in ('CTCTRC11')
                     AND SERVICES_CODE NOT LIKE '%INT%'
                     AND CNOTE_NO NOT LIKE 'RT%'
                     AND CNOTE_NO NOT LIKE 'FW%'
@@ -1996,14 +2009,20 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                     ${whereClause}
                     AND COST_OPS IS NULL
                     AND SERVICES_CODE NOT LIKE '%INT%'
-                    AND SERVICES_CODE  IN ('JTR<130',
-                        'JTR>130',
-                        'JTR23',
-                        'CTCJTR23',
-                        'CTCTRC11',
-                        'CTCJTR5_23',
-                        'JTR5_23',
-                        'CRGTK')
+--                     AND SERVICES_CODE  IN ('JTR<130',
+--                         'JTR>130',
+--                         'JTR23',
+--                         'CTCJTR23',
+--                         'CTCTRC11',
+--                         'CTCJTR5_23',
+--                         'JTR5_23',
+--                         'CRGTK')
+                             AND SERVICES_CODE IN (
+                    SELECT SERVICE_CODE
+                    FROM CMS_SERVICE@DB219
+                    WHERE SERVICE_CATEGORY = 'LOG'
+                    AND SERVICE_ACTIVE ='Y'
+                    )
                     AND CNOTE_NO NOT LIKE 'RT%'
                     AND CNOTE_NO NOT LIKE 'FW%'
                 GROUP BY SERVICES_CODE, CURRENCY_RATE, CURRENCY
