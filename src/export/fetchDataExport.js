@@ -1313,12 +1313,12 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
             const bindParams = {};
 
             if (origin_awal !== '0' ) {
-                whereClause += "AND  RT_CNOTE_ASLI_ORIGIN  like :origin_awal ";
+                whereClause += "AND  SUBSTR(RT_CNOTE_ORIGIN,1,3)  like :origin_awal ";
                 bindParams.origin_awal = origin_awal + '%';
             }
 
             if (destination !== '0' ) {
-                whereClause += "and RT_CNOTE_DEST LIKE  :destination ";
+                whereClause += "and SUBSTR(RT_CNOTE_DEST,1,3) LIKE  :destination ";
                 bindParams.destination = destination + '%';
             }
 
@@ -1795,7 +1795,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             worksheet.getRow(rowIndex++).values = ['Biaya Operasional Non NA'];
             worksheet.getRow(rowIndex++).values = [
                 'Services Code', 'QTY', 'Currency', 'Weight', 'Awb',
-                'Amount', 'Nett Amount', 'Cost Ops', 'Currency Rate', 'Tipe', 'Biaya Ops'
+                'Amount', 'Nett Amount', 'Currency Rate', 'Tipe', 'Biaya Ops'
             ];
             const summaryOps = await connection.execute(`
                 SELECT
@@ -1806,7 +1806,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                     COUNT(CNOTE_NO),
                     SUM(AMOUNT),
                     SUM(AMOUNT)/1.011 AS NETT_AMOUNT,
-                    SUM(COST_OPS),
+--                     SUM(COST_OPS),
                     CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
                     CASE
                         WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
@@ -1828,6 +1828,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                         'JTR>200',
                         'JTR>130',
                         'JTR23',
+                        'JTR',
                         'CTCJTR23',
                         'CTCTRC11')
                 AND SERVICES_CODE NOT LIKE '%INT%'
@@ -1839,16 +1840,16 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             summaryOps.rows.forEach(row => {
                 const r = worksheet.getRow(rowIndex++);
                 r.values = row;
-                [2, 4, 5, 6, 7,8, 11].forEach(col => r.getCell(col).numFmt = '#,##0');
+                [2, 4, 5, 6, 7, 10].forEach(col => r.getCell(col).numFmt = '#,##0');
             });
 
-            const totalOps = calculateTotal(summaryOps.rows, [1, 3, 4, 5, 6, 7, 10]);
+            const totalOps = calculateTotal(summaryOps.rows, [1, 3, 4, 5, 6, 10]);
             const totalRowOps = worksheet.getRow(rowIndex++);
             totalRowOps.values = [
                 'TOTAL', totalOps[0], '', totalOps[1], totalOps[2],
-                totalOps[3], totalOps[4], totalOps[5], '', '', totalOps[6]
+                totalOps[3], totalOps[4], '', '', totalOps[5]
             ];
-            [2, 4, 5, 6, 7,8, 11].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
+            [2, 4, 5, 6, 7, 10].forEach(col => totalRowOps.getCell(col).numFmt = '#,##0');
 
             // jtr
             rowIndex += 1;
@@ -1861,7 +1862,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                     COUNT(CNOTE_NO),
                     SUM(AMOUNT),
                     SUM(AMOUNT)/1.011 AS NETT_AMOUNT,
-                    SUM(COST_OPS),
+--                     SUM(COST_OPS),
                     CASE WHEN CURRENCY = 'IDR' THEN 1 ELSE 2 END CURRENCY_RATE,
                     CASE
                         WHEN SERVICES_CODE LIKE 'JTR%' THEN 'LOG'
@@ -1897,16 +1898,16 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             summaryOpsJTR.rows.forEach(row => {
                 const rjtr = worksheet.getRow(rowIndex++);
                 rjtr.values = row;
-                [2, 4, 5, 6, 7,8, 11].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
+                [2, 4, 5, 6, 7,8, 10].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
             });
 
-            const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 7, 10]);
+            const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 10]);
             const totalRowOpsJTR = worksheet.getRow(rowIndex++);
             totalRowOpsJTR.values = [
                 'TOTAL', totalOpsJTR[0], '', totalOpsJTR[1], totalOpsJTR[2],
-                totalOpsJTR[3], totalOpsJTR[4], totalOpsJTR[5], '', '', totalOpsJTR[6]
+                totalOpsJTR[3], totalOpsJTR[4], '', '', totalOpsJTR[5]
             ];
-            [2, 4, 5, 6, 7,8, 11].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
+            [2, 4, 5, 6, 7,10].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
 
 
             // === TABEL SUMMARY NO OPS ===
