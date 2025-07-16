@@ -7,6 +7,7 @@ const {
     checkPendingJobs, getPendingJobs, clean
 } = require('../handler/jobHandler');
 
+const { getQueueData} = require('../helper/helper');
 const router = express.Router();
 
 // Define API endpoint with query parameters
@@ -87,5 +88,13 @@ router.get('/logs', (req, res) => {
         res.send(last100Lines || 'Log is empty.');
     });
 });
+
+router.get('/queue-monitor', async (req, res) => {
+    const groupedQueues = await getQueueData();
+    res.render('queue-monitor', { groupedQueues });
+});
+
+
+
 
 module.exports = router; 

@@ -3,6 +3,7 @@ const rateLimit = require('express-rate-limit');
 const app = express();
 const port = 3010;
 const router = require('./routes');
+const path = require('path');
 
 // const limiter = rateLimit({
 //     windowMs: 15 * 60 * 1000, // 15 menit
@@ -15,7 +16,8 @@ const router = require('./routes');
 
 // Middleware
 app.use(express.json());
-
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'ejs');
 // Gunakan router utama
 app.use('/', router);
 
