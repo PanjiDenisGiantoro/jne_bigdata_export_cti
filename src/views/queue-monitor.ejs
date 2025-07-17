@@ -160,15 +160,36 @@
                                 <% if (queue.lastJob) { %>
                                     <div class="last-job">
                                         <div class="text-label mb-1">🧾 Last Job:</div>
-                                        <div class="queue-metric"><span>ID</span><span>
+                                        <div class="queue-metric">
+                                            <span>ID</span>
+                                            <span>
                                                 <%= queue.lastJob.id %>
-                                            </span></div>
-                                        <div class="queue-metric"><span>Name</span><span>
+                                            </span>
+                                        </div>
+                                        <div class="queue-metric">
+                                            <span>Name</span>
+                                            <span>
                                                 <%= queue.lastJob.name %>
-                                            </span></div>
-                                        <div class="queue-metric"><span>Status</span><span>
+                                            </span>
+                                        </div>
+                                        <div class="queue-metric">
+                                            <span>Category</span>
+                                            <span>
+                                                <%= queue.lastJob.category %>
+                                            </span>
+                                        </div>
+                                        <div class="queue-metric">
+                                            <span>File</span>
+                                            <span>
+                                                <%= queue.lastJob.fileName %>
+                                            </span>
+                                        </div>
+                                        <div class="queue-metric">
+                                            <span>Status</span>
+                                            <span>
                                                 <%= queue.lastJob.status %>
-                                            </span></div>
+                                            </span>
+                                        </div>
                                         <% if (queue.lastJob.duration) { %>
                                             <div class="queue-metric"><span>Duration</span><span>
                                                     <%= queue.lastJob.duration %>

@@ -13,23 +13,27 @@ async function getQueueData() {
         const last = jobs?.[0] ?? null;
         let lastUpdated = null;
         let lastJobInfo = null;
+        let zipFileName = null;
 
         if (last) {
             const timestamp = last.finishedOn || last.processedOn || last.timestamp;
-            lastUpdated = formatDateTime(timestamp);
+            const froms = last.data.froms;
+            const thrus = last.data.thrus;
 
+            const origin = last.data.origin === '%' ? 'ALL' : last.data?.origin ?? last.data.origin_awal;
+            const destination = last.data.destination === '%' ? 'ALL' : last.data.destination;
+            lastUpdated = formatDateTime(timestamp);
+            
             lastJobInfo = {
                 id: last.id,
-                name: last.data?.type && last.data?.user_id
-                    ? `${last.data.type} - ${last.data.user_id}`
-                    : '(no name)',
-                status: last.finishedOn ? 'completed' :
-                        last.failedReason ? 'failed' :
-                        last.processedOn ? 'active' :
-                        last.delay ? 'delayed' : 'waiting',
-                duration: last.finishedOn && last.processedOn
-                    ? formatDuration(last.finishedOn - last.processedOn)
-                    : null
+                name: last.data?.user_id ? `${last.data.user_id}` : '(no name)',
+                category: last.data?.type ? last.data.type : '(no category)',
+                fileName: last.data?.branch_id
+                    ? `${last.data.branch_id}-${froms}-${thrus}`
+                    : `${origin}-${destination}-${froms}-${thrus}`,
+
+                status: last.finishedOn ? 'completed' : last.failedReason ? 'failed' : last.processedOn ? 'active' : last.delay ? 'delayed' : 'waiting',
+                duration: last.finishedOn && last.processedOn ? formatDuration(last.finishedOn - last.processedOn) : null
             };
         }
 
@@ -48,13 +52,16 @@ async function getQueueData() {
     // Native Date grouping
     const now = Date.now();
     const grouped = {
+        'Currently Active': [],
         'Active Recently (< 1h)': [],
         'Inactive (> 1h)': [],
         'Never Active': []
     };
 
     for (const q of queueData) {
-        if (!q.lastUpdated) {
+        if (q.active > 0) {
+            grouped['Currently Active'].push(q);
+        } else if (!q.lastUpdated) {
             grouped['Never Active'].push(q);
         } else {
             const lastTime = new Date(q.lastUpdated).getTime();
