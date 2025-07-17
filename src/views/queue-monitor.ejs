@@ -91,6 +91,12 @@
             color: #4b5563;
             font-weight: 500;
         }
+
+        .summary-highlight {
+            background: #fefefe;
+            border-left: 5px solid #6c757d;
+            box-shadow: inset 0 0 0 1px #dee2e6;
+        }
     </style>
 </head>
 
@@ -110,6 +116,23 @@
                                 <div class="queue-title mb-3">
                                     <%= queue.name %>
                                 </div>
+                                <!-- Inside your .card-body -->
+                                <div class="summary-highlight mb-3 p-3 rounded"
+                                    style="background-color:#f8f9fa; border:1px dashed #ced4da;">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="metric-label text-success fw-semibold">✅ Completed</span>
+                                        <span class="badge bg-success-subtle text-dark fs-6 px-3 py-2 rounded-pill">
+                                            <%= queue.completed %>
+                                        </span>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="metric-label text-danger fw-semibold">❌ Failed</span>
+                                        <span class="badge bg-danger-subtle text-dark fs-6 px-3 py-2 rounded-pill">
+                                            <%= queue.failed %>
+                                        </span>
+                                    </div>
+                                </div>
+
 
                                 <div class="queue-metric">
                                     <span class="metric-label">🕓 Waiting</span>
@@ -121,18 +144,6 @@
                                     <span class="metric-label">⚙️ Active</span>
                                     <span class="badge bg-primary-subtle text-dark badge-status">
                                         <%= queue.active %>
-                                    </span>
-                                </div>
-                                <div class="queue-metric">
-                                    <span class="metric-label">✅ Completed</span>
-                                    <span class="badge bg-success-subtle text-dark badge-status">
-                                        <%= queue.completed %>
-                                    </span>
-                                </div>
-                                <div class="queue-metric">
-                                    <span class="metric-label">❌ Failed</span>
-                                    <span class="badge bg-danger-subtle text-dark badge-status">
-                                        <%= queue.failed %>
                                     </span>
                                 </div>
                                 <div class="queue-metric">
