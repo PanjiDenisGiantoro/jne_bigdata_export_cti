@@ -7,6 +7,11 @@ const ExcelJS = require('exceljs');
 const archiver = require('archiver');
 const { buildWhereClause } = require('../helper/whereClause');
 
+function normalizeName(val) {
+    if (!val || val === '0' || val === '%' || val === '') return 'All';
+    return val;
+}
+
 async function fetchDataAndExportToExcel({origin, destination, froms, thrus, user_id, dateStr, jobId}) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -100,15 +105,20 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
 
             const dateNow = new Date();
             const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
             console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+
+            const baseFileNameTCO = `TCO Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `TCOReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `${baseFileNameTCO} Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan TCO');
 
@@ -178,7 +188,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `TCOReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameTCO} ${jobId}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -307,15 +317,20 @@ async function fetchDataAndExportToExcelTCI({
 
             const dateNow = new Date();
             const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
             console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+
+            const baseFileNameTCI = `TCI Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `TCIReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `${baseFileNameTCI} Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan TCI');
 
@@ -388,7 +403,7 @@ async function fetchDataAndExportToExcelTCI({
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `TCIReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameTCI} ${jobId}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -502,10 +517,16 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
             console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+
+            const baseFileNameDCI = `DCI Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `DCIReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `${baseFileNameDCI} Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan DCI');
 
@@ -548,7 +569,7 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DCIReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCI} ${jobId}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -664,10 +685,15 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
             console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+            const baseFileNameDCO = `DCO Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `DCOReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `${baseFileNameDCO} Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan DCO');
 
@@ -727,7 +753,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DCOReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCO} ${jobId}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -1380,15 +1406,18 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
 
             const dateNow = new Date();
             const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
             console.log('Memulai proses ekspor Excel...');
+            const normOrigin = normalizeName(origin_awal);
+            const normDestination = normalizeName(destination);
+            const baseFileNameRU = `RU Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `RUReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `${baseFileNameRU} Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan RU');
 
@@ -1441,7 +1470,7 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `RUReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameRU} ${jobId}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -1470,19 +1499,13 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
-            //
-            // const { whereClause, bindParams } = await buildWhereClause(
-            //     { branch_id, froms, thrus }, 'DBO'
-            // )
 
             let whereClause = "WHERE 1 = 1";
             const bindParams = {};
             if (branch_id !== '0' ) {
-                //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
                 bindParams.branch_id = branch_id ;
             }
-
 
             if (froms !== '0' && thrus !== '0') {
                 whereClause += "AND trunc(CNOTE_DATE) BETWEEN TO_DATE(:froms, 'DD-MON-YYYY') AND TO_DATE(:thrus, 'DD-MON-YYYY') ";
@@ -1490,14 +1513,12 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
                 bindParams.thrus = thrus;
             }
 
-
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
                 SELECT CNOTE_NO,
                     SERVICES_CODE,
                     QTY,
                     CURRENCY,
-                    --WEIGHT,
                     CASE
                         WHEN WEIGHT = 0 THEN 0
                         WHEN WEIGHT < 1 THEN 1
@@ -1519,10 +1540,9 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             }
             console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
-
             const dateNow = new Date();
             const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const timeString = getTimeString(dateNow);
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
@@ -1530,7 +1550,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `DBOReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `DBO Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan DBO');
 
@@ -1558,7 +1578,6 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
                 worksheet.addRow([]).commit();
                 worksheet.addRow(headers).commit();
 
-                // const numberFormat = new Intl.NumberFormat('id-ID'); // Format angka dengan pemisah ribuan (IDR)
                 for (const row of chunks[i]) {
                     worksheet.addRow([no++, ...row]).commit();
                 }
@@ -1581,7 +1600,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DBOReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `DBO Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -1610,16 +1629,11 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             console.log('Menghubungkan ke database...');
             connection = await oracledb.getConnection(config);
             console.log("Koneksi berhasil ke database");
-            //
-            // const { whereClause, bindParams } = await buildWhereClause(
-            //     { branch_id, froms, thrus }, 'DBONA'
-            // )
 
             let whereClause = "WHERE 1 = 1";
             const bindParams = {};
 
             if (branch_id !== '0' ) {
-                //     like SUBSTR(BRANCH_ID,1,3)
                 whereClause += "AND  SUBSTR(BRANCH_ID,1,3) = :branch_id ";
                 bindParams.branch_id = branch_id ;
             }
@@ -1630,14 +1644,12 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
                 bindParams.thrus = thrus;
             }
 
-
             console.log('Menjalankan query data...');
             const result = await connection.execute(`
                 SELECT CNOTE_NO,
                     SERVICES_CODE,
                     QTY,
                     CURRENCY,
-                    --WEIGHT,
                     CASE
                         WHEN WEIGHT = 0 THEN 0
                         WHEN WEIGHT < 1 THEN 1
@@ -1662,7 +1674,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
 
             const dateNow = new Date();
             const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const timeString = getTimeString(dateNow);
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
@@ -1670,7 +1682,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `DBONAReport_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `DBONA Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Data Laporan DBONA');
 
@@ -1685,7 +1697,6 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
                     "AMOUNT",
                     "CURRENCY RATE"
                 ];
-
 
                 worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
                 if (branch_id !== '%') {
@@ -1704,7 +1715,6 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
                     numericIndices.forEach(idx => {
                         const value = row[idx];
                         if (typeof value === 'string') {
-                            // Hapus semua titik/koma lalu ubah ke number
                             row[idx] = parseFloat(value.replace(/[.,]/g, '')) || 0;
                         }
                     });
@@ -1735,7 +1745,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DBONAReport_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `DBONA Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${timeString}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -2253,10 +2263,17 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
             console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+
+            // Penamaan file: BiayaAngkut_Marketplace_Report_{origin}-to-{destination}_{user_id}_{dateString}
+            const baseFileNameMP = `BA_Marketplace Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
                 console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
-                const fileName = path.join(folderPath, `BiayaAngkut_Marketplace_Report_${timeString}_${user_id}_part${i + 1}.xlsx`);
+                const fileName = path.join(folderPath, `${baseFileNameMP} Part ${i + 1}.xlsx`);
                 const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
                 const worksheet = workbook.addWorksheet('Marketplace Report');
 
@@ -2322,7 +2339,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `BiayaAngkut_Marketplace_Report_${user_id}_${dateString}_${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameMP} ${jobId}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
