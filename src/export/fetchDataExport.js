@@ -46,6 +46,11 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS CONNOTE_DATE, -- Format tanggal
                     TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS TIME_CONNOTE_DATE, -- Format tanggal
                     CUST_ID,
+                    CASE
+                        WHEN CUST_ID = '80514305' THEN 'SHOPEE'
+                        WHEN CUST_ID IN ('11666700', '80561600', '80561601') THEN 'TOKOPEDIA'
+                        ELSE 'NON MP'
+                    END AS MARKETPLACE,
                     SERVICES_CODE AS SERVICE_CONNOTE,
                     OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
                     TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE, -- Format tanggal
@@ -113,6 +118,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
                     "CUST ID",
+                    "MARKETPLACE",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
@@ -246,6 +252,11 @@ async function fetchDataAndExportToExcelTCI({
                     TO_CHAR(AWB_DATE, 'DD/MM/YYYY') AS AWB_DATE, -- Format tanggal
                     TO_CHAR(AWB_DATE, 'HH:MI:SS AM') AS TIME_AWB_DATE, -- Format tanggal
                     CUST_ID,
+                    CASE
+                        WHEN CUST_ID = '80514305' THEN 'SHOPEE'
+                        WHEN CUST_ID IN ('11666700', '80561600', '80561601') THEN 'TOKOPEDIA'
+                        ELSE 'NON MP'
+                    END AS MARKETPLACE,
                     SERVICES_CODE AS SERVICE_CONNOTE,
                     OUTBOND_MANIFEST_NO AS OUTBOND_MANIFEST_NUMBER,
                     TO_CHAR(OUTBOND_MANIFEST_DATE, 'DD/MM/YYYY') AS OUTBOND_MANIFEST_DATE, -- Format tanggal
@@ -314,6 +325,7 @@ async function fetchDataAndExportToExcelTCI({
                     "CONNOTE DATE",
                     "TIME CONNOTE DATE",
                     "CUST ID",
+                    "MARKETPLACE",
                     "SERVICE CONNOTE",
                     "OUTBOND MANIFEST NUMBER",
                     "OUTBOND MANIFEST DATE",
