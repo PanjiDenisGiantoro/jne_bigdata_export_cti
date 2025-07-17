@@ -188,7 +188,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameTCO} ${jobId}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameTCO} ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -403,7 +403,7 @@ async function fetchDataAndExportToExcelTCI({
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameTCI} ${jobId}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameTCI} ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -569,7 +569,7 @@ async function fetchDataAndExportToExcelDCI({ origin, destination, froms, thrus,
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCI} ${jobId}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCI} ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -753,7 +753,7 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCO} ${jobId}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCO} ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -1470,7 +1470,7 @@ async function fetchDataAndExportToExcelRU({origin_awal, destination,services_co
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameRU} ${jobId}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameRU} ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -2339,7 +2339,7 @@ async function fetchDataAndExportToExcelMP({ origin, destination, froms, thrus, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameMP} ${jobId}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameMP} ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
