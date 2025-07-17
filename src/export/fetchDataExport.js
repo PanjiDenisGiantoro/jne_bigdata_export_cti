@@ -2116,7 +2116,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             const dateString = dateNow.toISOString().split('T')[0];
             const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
 
-            const zipFileName = path.join(__dirname, '../../file_download', `Biaya Operasional Report ${user_id}_${timeString}_${uuidv4()}.xlsx`);
+            const zipFileName = path.join(__dirname, '../../file_download', `Biaya Operasional Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.xlsx`);
             await workbook.xlsx.writeFile(zipFileName);
 
 
