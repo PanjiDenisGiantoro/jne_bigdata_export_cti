@@ -1541,8 +1541,6 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
             const dateNow = new Date();
-            const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = getTimeString(dateNow);
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
@@ -1600,7 +1598,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DBO Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `DBO Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -1673,8 +1671,6 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
 
             const dateNow = new Date();
-            const dateString = dateNow.toISOString().split('T')[0];
-            const timeString = getTimeString(dateNow);
             const folderPath = path.join(__dirname, uuidv4());
             if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
 
@@ -1745,7 +1741,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DBONA Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${timeString}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `DBONA Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
