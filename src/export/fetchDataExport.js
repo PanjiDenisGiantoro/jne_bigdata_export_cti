@@ -1865,7 +1865,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 [2, 4, 5, 6, 7, 10].forEach(col => r.getCell(col).numFmt = '#,##0');
             });
 
-            const totalOps = calculateTotal(summaryOps.rows, [1, 3, 4, 5, 6, 10]);
+            const totalOps = calculateTotal(summaryOps.rows, [1, 3, 4, 5, 6, 9]);
             const totalRowOps = worksheet.getRow(rowIndex++);
             totalRowOps.values = [
                 'TOTAL', totalOps[0], '', totalOps[1], totalOps[2],
@@ -1929,14 +1929,13 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
                 [2, 4, 5, 6, 7,8, 10].forEach(col => rjtr.getCell(col).numFmt = '#,##0');
             });
 
-            const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 10]);
+            const totalOpsJTR = calculateTotal(summaryOpsJTR.rows, [1, 3, 4, 5, 6, 9]);
             const totalRowOpsJTR = worksheet.getRow(rowIndex++);
             totalRowOpsJTR.values = [
                 'TOTAL', totalOpsJTR[0], '', totalOpsJTR[1], totalOpsJTR[2],
                 totalOpsJTR[3], totalOpsJTR[4], '', '', totalOpsJTR[5]
             ];
             [2, 4, 5, 6, 7,10].forEach(col => totalRowOpsJTR.getCell(col).numFmt = '#,##0');
-
 
             // === TABEL SUMMARY NO OPS ===
             rowIndex += 2;
