@@ -1598,7 +1598,7 @@ async function fetchDataAndExportToExcelDBO({ branch_id, froms, thrus, user_id, 
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DBO Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `DBO Report - ${user_id} [${normalizeName(branch_id)}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -1741,7 +1741,7 @@ async function fetchDataAndExportToExcelDBONA({ branch_id, froms, thrus, user_id
             }
 
             console.log('Memulai proses zip file...');
-            const zipFileName = path.join(__dirname, '../../file_download', `DBONA Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.zip`);
+            const zipFileName = path.join(__dirname, '../../file_download', `DBONA Report - ${user_id} [${normalizeName(branch_id)}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.zip`);
             const output = fs.createWriteStream(zipFileName);
             const archive = archiver('zip', { zlib: { level: 1 } });
             archive.pipe(output);
@@ -2115,7 +2115,7 @@ async function fetchDataAndExportToExcelDBONASUM({ branch_id, froms, thrus, user
             const dateString = dateNow.toISOString().split('T')[0];
             const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
 
-            const zipFileName = path.join(__dirname, '../../file_download', `Biaya Operasional Report - ${user_id} [${branch_id}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.xlsx`);
+            const zipFileName = path.join(__dirname, '../../file_download', `Biaya Operasional Report - ${user_id} [${normalizeName(branch_id)}] [${froms} - ${thrus}] ${jobId.substring(0, 5)}.xlsx`);
             await workbook.xlsx.writeFile(zipFileName);
 
 
