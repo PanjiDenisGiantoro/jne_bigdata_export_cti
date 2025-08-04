@@ -1,0 +1,93 @@
+[33m3a03cb1a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m fix error push
+[33mc2d3f457[m rebase
+[33mbb6e2da0[m del file big
+[33m791141c9[m fix: add env and refactor queryset
+[33md689d0e4[m fix: add env and refactor queryset
+[33m634c0830[m[33m ([m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m current active
+[33m57920573[m Merge branch 'master' of github.com:PanjiDenisGiantoro/jne_bigdata_export_cti
+[33ma188e496[m feat: Pull repo from ssh remote
+[33m9411dbad[m feat: Added new features for add cnote data to cms_cnote jne bill
+[33m0de4b47a[m Feat: Updated query for fetchData
+[33mb63578e0[m Merge pull request #11 from PanjiDenisGiantoro/dev/abiyyi
+[33m92274eaf[m[33m ([m[1;31morigin/dev/abiyyi[m[33m)[m feat(quemonitor): que active flag
+[33md5a24b17[m feat: monitor with currently active
+[33mad91c7e5[m Feat: added normalize name function for DBO DBONA DBONASUM
+[33m3404ab3c[m fix: case total dbonasum 0
+[33ma3e357d1[m Feat: update jobID for name file dbonasum
+[33mbf36210a[m Feat: Update replace for getTimeString to jobID DBO features
+[33m0466d358[m Feat: Change limit for job id file name zip
+[33me42ff306[m Merge branch 'master' of https://github.com/PanjiDenisGiantoro/jne_bigdata_export_cti
+[33m0b0d43ad[m Feat: Update formate name for excel and zip
+[33m90bac5cb[m Merge pull request #10 from PanjiDenisGiantoro/dev/abiyyi
+[33m841eef64[m summary complted
+[33mfc29e29e[m styling
+[33m1c6b089c[m tco tci, excel header marketplace
+[33m475920d6[m que monitor
+[33mb0dd42cc[m[33m ([m[1;31morigin/dev/rizki[m[33m)[m Fixed conflict
+[33me5a1c3b2[m Feat: Added new column cust ID for TCI TCO
+[33m8163ba6b[m fix: modify query dbonasum add subquery
+[33m893a962f[m Added cust ID column for TCI TCO
+[33mc44ab33b[m Fixed conflict
+[33m27dc7da0[m Feat: Added new column cust_id for TCI TCO
+[33m34d84ebf[m fix: services_code in module DBONASUM
+[33m045f8850[m fix: modify query where services JTR>200
+[33m55494175[m Feat: Updated query for mp Biaya Angkut
+[33mdbd7123e[m fix(report): if else conflict !== '%' on MP fetch data
+[33mb960674b[m fix all
+[33m89b61348[m fix: fetchdataexport MP , add log MP , modify config ecosystem
+[33m7aa4b045[m[33m ([m[1;31morigin/main[m[33m, [m[1;32mmain[m[33m)[m feat: add route logs at last 150 lines
+[33m92bb0bf1[m[33m ([m[1;31morigin/dev/staging[m[33m)[m Merge pull request #9 from PanjiDenisGiantoro/dev/abiyyi
+[33med71cdd7[m feat(log): route log the last 150 lines
+[33mc5d16abc[m Merge pull request #8 from PanjiDenisGiantoro/dev/staging
+[33m4dfb187c[m Merge pull request #7 from PanjiDenisGiantoro/dev/abiyyi
+[33m4ce8e1c9[m feat(report): whereclause validation, query DCI DCO on refactore code
+[33mb7147ff7[m Feat: Updated date time for DCO
+[33madf4b28f[m[33m ([m[1;32mdev/staging[m[33m, [m[1;32mdev/panji[m[33m)[m Feat: Updated filter DBONASUM for JTR
+[33mfb486c38[m feat(report): build whereclause function
+[33m604cdb6d[m feat(report): add jobId in refactor code
+[33m71a78502[m Merge pull request #6 from PanjiDenisGiantoro/dev/panji
+[33m65e8f8e4[m[33m ([m[1;31morigin/dev/panji[m[33m)[m fix: change query for DBONASUM (summaryOps) is service code
+[33mbdb4de09[m update(report): update query for estimateDataCout DCI and DCO
+[33m1556e40c[m Feat: Added query for DCO DCI
+[33ma1ba96f9[m Merge pull request #5 from PanjiDenisGiantoro/dev/redis
+[33m27be228c[m[33m ([m[1;31morigin/dev/redis[m[33m, [m[1;32mdev/redis[m[33m)[m fix: add validation  SERVICES_CODE not in TRC11, TRC13, INTL20
+[33m229b8938[m fix: add validation  SERVICES_CODE <> INTL20
+[33m16af7491[m Merge pull request #4 from PanjiDenisGiantoro/dev/redis
+[33mcbf70e74[m Solved Conflict error text log
+[33me181cd48[m Updated redis
+[33m25f47106[m Merge pull request #3 from PanjiDenisGiantoro/dev/refactor-src
+[33m93f01352[m[33m ([m[1;31morigin/dev/refactor-src[m[33m)[m feat: Updated time column for Biaya Angkut Marketplace
+[33mfaf68612[m refactor: pindah logic endpoint download & util (pending, clean) ke handler
+[33mfeb4814b[m refactor: restructure codebase, standardize file & log paths - Refactor besar ke dalam folder src/ - Standarisasi path log ke src/log/log_files - Perbaiki seluruh import dependencies & koneksi DB - Update endpoint /clean untuk bersihkan semua queue - Penyesuaian path log di semua modul agar konsisten dengan struktur baru
+[33m515eae8f[m fix: module DBONASUM and add filter service code JTR
+[33m6fed8246[m Merge pull request #2 from PanjiDenisGiantoro/dev/ba-marketplace
+[33m0c630244[m[33m ([m[1;31morigin/dev/ba-marketplace[m[33m)[m Refactor: Support chunked Excel export and log update in fetchDataAndExportToExcelMP
+[33mef4bbc0c[m feat: Add API downloadmp and update file zip name and update where filter getreportmp for Biaya Angkut Marketplace - Menambahkan endpoint API baru: /downloadmp untuk kebutuhan marketplace - Mengubah format penamaan file zip menjadi BiayaAngkut_Marketplace_Report___.zip - Penyesuaian pada proses ekspor dan download file marketplace
+[33ma821fd9b[m Merge pull request #1 from PanjiDenisGiantoro/dev/ba-marketplace
+[33m43970171[m feat: add new API endpoint for marketplace integration
+[33m0896d890[m fix all menu #2
+[33m39966cd1[m fix all menu
+[33m10e793f1[m add 10 queue
+[33ma8b64ada[m update in dev for rate limiter
+[33m80ed6e68[m add rate limiter
+[33m46b9ce12[m Create README.md
+[33mfaad1a06[m adjust production code
+[33m5637d2b0[m Delete ReportTCO.json
+[33mbcdeeb99[m Delete ReportTCI.json
+[33m83049a43[m Delete ReportDCO.json
+[33mb8c7b3d2[m Delete ReportDCI.json
+[33m687e9815[m Delete node_modules directory
+[33me6670b11[m add 3 queue
+[33m5ae9cc44[m fix tco queue
+[33m522108f2[m update stream data excel
+[33m4b96193d[m rerun job
+[33m55e66626[m add mode dev
+[33m512c3c6a[m fixed undelete file after download
+[33m0191df88[m fixed undelete file after download
+[33m93bb7c45[m fix get big data fix with chunk 50000
+[33me3a3e64d[m up
+[33m325ef8ed[m up
+[33m7ed2fe9f[m Menambahkan folder file_download ke dalam .gitignore
+[33mc483e777[m fix v3
+[33md8e3fe32[m cek
+[33mc1909cf1[m tes

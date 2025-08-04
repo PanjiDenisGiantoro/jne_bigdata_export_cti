@@ -1,0 +1,2 @@
+*.xlsx filter=lfs diff=lfs merge=lfs -text
+src/export/e92447d5-45f1-4645-8165-6aa4933858a9/*.xlsx filter=lfs diff=lfs merge=lfs -text

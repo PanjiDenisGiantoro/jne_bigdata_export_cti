@@ -1,0 +1,19 @@
+2025-05-08 16:39:19 | JobID: 1 | Origin: BDO | Destination: BDO | UserID: YANTI | Session : 9324 | Error: Cannot access 'chunks' before initialization
+2025-05-13 14:28:42 | JobID: 4 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: job is not defined
+2025-05-14 23:23:39 | JobID: 30 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-510: connection to host 10.8.2.48 port 1521 timed out. Request exceeded "transportConnectTimeout" of 20 seconds. (CONNECTION_ID=QCu77JNXymHGC/KtqopURw==)
+2025-05-14 23:24:08 | JobID: 29 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-510: connection to host 10.8.2.48 port 1521 timed out. Request exceeded "transportConnectTimeout" of 20 seconds. (CONNECTION_ID=ZC1eVL9mPQb2hFBwpjdTOw==)
+2025-05-14 23:31:15 | JobID: 32 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: ENOSPC: no space left on device, write
+2025-05-14 23:31:58 | JobID: 33 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: NJS-500: connection to the Oracle Database was broken
+NJS-501: connection to host 10.8.2.48 port 1521 terminated unexpectedly. (CONNECTION_ID=KYufWB0otbL9Q1TKsavNmQ==)
+read ECONNRESET
+2025-05-29 20:33:56 | JobID: 5 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: rresult is not defined
+2025-06-03 23:52:25 | JobID: 3 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: Cannot read properties of undefined (reading 'split')
+2025-06-04 00:00:14 | JobID: 4 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: result is not defined
+2025-06-04 00:10:20 | JobID: 5 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: Cannot read properties of undefined (reading 'split')
+2025-06-04 00:18:22 | JobID: 6 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: Cannot read properties of undefined (reading 'split')
+2025-06-04 00:28:37 | JobID: 7 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: jobId is not defined
+2025-06-04 00:32:15 | JobID: 8 | Origin: BDO | Destination: 0 | UserID: YANTI | Error: jobId is not defined
+2025-06-12 14:12:23 | JobID: 21 | Origin: BDO | Destination: 0 | UserID: RAFEJIO | Session : 3032096450190 | Error: undefined
+2025-06-12 14:18:35 | JobID: 22 | Origin: BDO | Destination: 0 | UserID: RAFEJIO | Session : 3032096450190 | Error: undefined
+2025-07-07 15:17:33 | JobID: 403dc488-1896-4543-92dd-6c4550f585d5 | Origin: BDO | Destination: 0 | UserID: YANTILOCAL | Error: ORA-01722: invalid number
+Help: https://docs.oracle.com/error-help/db/ora-01722/
