@@ -9,4 +9,5 @@ ecosystem.config.js
 src_cnote/
 public/
 .env
+.env.example
 src/export/*.xlsx
