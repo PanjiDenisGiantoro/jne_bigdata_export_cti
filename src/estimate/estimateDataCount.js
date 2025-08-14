@@ -179,7 +179,7 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                     
                     // Add additional conditions specific to this query
                     const additionalConditions = `
-                        AND SUBSTR(ORIGIN,1,3) = SUBSTR(DESTINATION,1,3)
+                        AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
                         --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
                         AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
                         AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
@@ -197,6 +197,112 @@ async function estimateDataCountDCO({origin, destination, froms, thrus, service,
                     connection.execute(`
                         SELECT COUNT(*) AS DATA_COUNT
                         FROM CMS_COST_DELIVERY_V2 
+                        ${whereClause}
+                        ${additionalConditions}
+                    `, bindParams, (err, result) => {
+                        if (err) {
+                            reject('Error executing query: ' + err.message);
+                        } else {
+                            resolve(result.rows.length > 0 ? result.rows[0][0] : 0);
+                        }
+                    });
+                }
+            });
+        } catch (err) {
+            reject('Error: ' + err.message);
+        }
+    });
+}
+
+async function estimateDataCountDCIV3({origin, destination, froms, thrus, service, user_id}) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            oracledb.getConnection(config, async (err, conn) => {
+                if (err) {
+                    reject('Error connecting to database: ' + err.message);
+                } else {
+                    connection = conn;
+                    
+                    // Build where clause using the helper
+                    const { whereClause, bindParams } = await buildWhereClause(
+                        { origin, destination, froms, thrus, service },
+                        'DCI'  // Using DCI mapping for this function
+                    );
+                    
+                    // Add additional conditions specific to this query
+                    const additionalConditions = `
+                        AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                        --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
+                        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
+                        AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                            'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                            'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                            'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                            'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                            'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                            'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
+                    `;
+
+                    // Query untuk estimasi jumlah data
+                    connection.execute(`
+                        SELECT COUNT(*) AS DATA_COUNT
+                        FROM CMS_COST_DELIVERY_V3 
+                        ${whereClause}
+                        ${additionalConditions}
+                    `, bindParams, (err, result) => {
+                        if (err) {
+                            reject('Error executing query: ' + err.message);
+                        } else {
+                            resolve(result.rows.length > 0 ? result.rows[0][0] : 0);
+                        }
+                    });
+                }
+            });
+        } catch (err) {
+            reject('Error: ' + err.message);
+        }
+    });
+}
+
+async function estimateDataCountDCOV3({origin, destination, froms, thrus, service, user_id}) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            oracledb.getConnection(config, async (err, conn) => {
+                if (err) {
+                    reject('Error connecting to database: ' + err.message);
+                } else {
+                    connection = conn;
+                    
+                    // Build where clause using the helper
+                    const { whereClause, bindParams } = await buildWhereClause(
+                        { origin, destination, froms, thrus, service },
+                        'DCO'  // Using DCO mapping for this function
+                    );
+                    
+                    // Add additional conditions specific to this query
+                    const additionalConditions = `
+                        AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                        --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
+                        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
+                        AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                            'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                            'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                            'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                            'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                            'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                            'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
+                    `;
+
+                    // Query untuk estimasi jumlah data
+                    connection.execute(`
+                        SELECT COUNT(*) AS DATA_COUNT
+                        FROM CMS_COST_DELIVERY_V3 
                         ${whereClause}
                         ${additionalConditions}
                     `, bindParams, (err, result) => {
@@ -446,6 +552,8 @@ module.exports = {
     estimateDataCountTCI,
     estimateDataCountDCI,
     estimateDataCountDCO,
+    estimateDataCountDCIV3,
+    estimateDataCountDCOV3,
     estimateDataCountCA,
     estimateDataCountRU,
     estimateDataCountDBO,
