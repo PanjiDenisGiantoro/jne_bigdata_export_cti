@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const {
-    getReportTCO, getReportTCI, getReportDCI, getReportDCO, getReportCA, getReportRU, getReportDBO, getReportDBONA, getReportDBONASUM, getReportMP,
+    getReportTCO, getReportTCI, getReportDCI, getReportDCO, getReportDCIV3, getReportDCOV3, getReportCA, getReportRU, getReportDBO, getReportDBONA, getReportDBONASUM, getReportMP,
     downloadTCO, downloadTCI, downloadDCI, downloadDCO, downloadCA, downloadRU, downloadDBO, downloadDBONA, downloadDBONASUM, downloadMP,
     checkPendingJobs, getPendingJobs, clean
 } = require('../handler/jobHandler');
@@ -18,6 +18,10 @@ router.get("/getreporttci", getReportTCI);
 router.get("/getreportdci", getReportDCI);
 
 router.get("/getreportdco", getReportDCO);
+
+router.get("/v3/getreportdci", getReportDCIV3);
+
+router.get("/v3/getreportdco", getReportDCOV3);
 
 router.get("/getreportca", getReportCA);
 

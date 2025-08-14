@@ -9,8 +9,8 @@ const oracledb = require('oracledb');
 const config = require('../config/dbConfig').config;
 const moment = require('moment');
 const { logErrorToFile, logErrorToFileTCI, logErrorToFileDCI, logErrorToFileDCO, logErrorToFileCA, logErrorToFileRU, logErrorToFileDBO, logErrorToFileDBONA, logErrorToFileDBONASUM } = require('../log/errorLogger');
-const { estimateDataCount, estimateDataCountTCI, estimateDataCountDCI, estimateDataCountDCO, estimateDataCountCA, estimateDataCountRU, estimateDataCountDBO, estimateDataCountDBONA, estimateDataCountMP } = require('../estimate/estimateDataCount');
-const { fetchDataAndExportToExcel, fetchDataAndExportToExcelTCI, fetchDataAndExportToExcelDCI, fetchDataAndExportToExcelDCO, fetchDataAndExportToExcelCA, fetchDataAndExportToExcelCABTM, fetchDataAndExportToExcelRU, fetchDataAndExportToExcelDBO, fetchDataAndExportToExcelDBONA, fetchDataAndExportToExcelDBONASUM, fetchDataAndExportToExcelMP } = require('../export/fetchDataExport');
+const { estimateDataCount, estimateDataCountTCI, estimateDataCountDCI, estimateDataCountDCO, estimateDataCountDCIV3, estimateDataCountDCOV3, estimateDataCountCA, estimateDataCountRU, estimateDataCountDBO, estimateDataCountDBONA, estimateDataCountMP } = require('../estimate/estimateDataCount');
+const { fetchDataAndExportToExcel, fetchDataAndExportToExcelTCI, fetchDataAndExportToExcelDCI, fetchDataAndExportToExcelDCO, fetchDataAndExportToExcelDCIV3, fetchDataAndExportToExcelDCOV3, fetchDataAndExportToExcelCA, fetchDataAndExportToExcelCABTM, fetchDataAndExportToExcelRU, fetchDataAndExportToExcelDBO, fetchDataAndExportToExcelDBONA, fetchDataAndExportToExcelDBONASUM, fetchDataAndExportToExcelMP } = require('../export/fetchDataExport');
 
 // Create an object to store all queues
 const queues = {};
@@ -541,6 +541,271 @@ const processJob = async (job) => {
 
                         // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
                         zipFileName = await fetchDataAndExportToExcelDCO({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            service,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                        `;
+
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
+
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
+
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
+
+
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DCO');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+
+                            // Log the error details to file
+                            logErrorToFileDCO(job.id, origin, destination, service, user_id, error.message);
+
+                        });
+                        Sentry.captureException(error);
+
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+            }else if(type === 'dciv3'){
+                await Sentry.startSpan({name: 'Process Report DCI Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, user_id, service, dateStr,jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
+
+                        const estimatedDataCount = await estimateDataCountDCIV3({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            service,
+                            user_id,
+                        });
+
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = process.env.COUNTESTIMATE; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / process.env.COUNTCHUNK);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                        `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${job.id}`);
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDCIV3({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            user_id,
+                            service,
+                            dateStr,
+                            jobId: job.id
+                        }).then((result) => {
+                            dataCount = result.dataCount; // Assuming the fetchDataAndExportToExcel function returns data count
+                            return result.zipFileName;
+                        });
+
+                        // Capture the completion time after the job is done
+                        const endTime = Date.now();
+                        completionTime = new Date(endTime).toISOString(); // Convert to ISO string for consistency
+
+                        // Calculate the elapsed time in minutes
+                        elapsedTimeMinutes = ((endTime - startTime) / 1000 / 60).toFixed(2); // Time in minutes
+                        const formattedDate = moment().format('DD/MM/YYYY hh:mm:ss A');  // Example: "05/08/2025 03:49:00 PM"
+
+                        const connection = await oracledb.getConnection(config);
+                        const updateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET DOWNLOAD   = 0,
+                                STATUS     = 'Zipped',
+                                NAME_FILE  = :filename,
+                                UPDATED_AT = TO_TIMESTAMP(:updated_at, 'DD/MM/YYYY HH:MI:SS AM'),
+                                TRANSIT_V2_LOG_FLAG_DELETE = 'N'
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCI'
+                        `;
+
+                        // Prepare the update values
+                        const updateValues = {
+                            filename: zipFileName.split('\\').pop(),  // Get the zip file name from the generated file path
+                            updated_at: formattedDate,  // Use the formatted date here
+                            jobId: job.id  // The job ID that we are processing
+                        };
+
+                        // Execute the update query
+                        await connection.execute(updateQuery, updateValues);
+                        await connection.commit();
+                        console.log(`Job status updated to 'Done' for job ID: ${job.id}`);
+                        await redis.del('currentJobStatus');
+                        console.log(`Job ID: ${jobId} is done`);
+
+                        // Cek apakah ada job tertunda yang perlu diproses
+                        await processPendingJobs();
+
+                        // if (global.gc) {
+                        //     global.gc();  // Memicu garbage collection untuk membersihkan cache dan buffer
+                        //     console.log('Manual garbage collection triggered DCI');
+                        // } else {
+                        //     console.log('Garbage collection not exposed. Run Node.js with --expose-gc flag.');
+                        // }
+                        return {
+                            status: 'done',
+                            zipFileName: zipFileName, // Add the file name to the return value
+                            completionTime: completionTime, // Add the completion time
+                            dataCount: dataCount,  // Number of records processed
+                            elapsedTimeMinutes: elapsedTimeMinutes  // Processing time in minutes
+                        };
+                    } catch (error) {
+                        console.error('Error processing the job:', error);
+                        await Sentry.startSpan({name: 'Log Error to File' + job.id, jobId: job.id}, async () => {
+
+                            // Log the error details to file
+                            logErrorToFileDCI(job.id, origin, destination, user_id, error.message);
+
+                        });
+                        Sentry.captureException(error);
+
+                        return {
+                            status: 'failed',
+                            error: error.message
+                        };
+                    }
+                });
+
+            }else if(type ==='dcov3') {
+                await Sentry.startSpan({name: 'Process Report DCO Job' + job.id, jobId: job.id}, async (span) => {
+                    const {origin, destination, froms, thrus, service, user_id, dateStr, jobId} = job.data;
+                    console.log('Processing job with data:', job.data);
+
+                    let zipFileName = '';
+                    let completionTime = '';
+                    let dataCount = 0;  // Variable to store the number of records processed
+                    let elapsedTimeMinutes = 0;  // Variable to store elapsed time in minutes
+
+                    try {
+                        // Capture the start time
+                        const startTime = Date.now();
+
+                        const estimatedDataCount = await estimateDataCountDCOV3({
+                            origin,
+                            destination,
+                            froms,
+                            thrus,
+                            service,
+                            user_id
+                        });
+
+                        // Calculate the estimated time based on the benchmark
+                        const benchmarkRecordsPerMinute = process.env.COUNTESTIMATE; // 60,000 records / 2 minutes
+                        const estimatedTimeMinutes =
+                            (estimatedDataCount / benchmarkRecordsPerMinute) * 2; // Estimated time in minutes
+
+                        const today = new Date();
+                        const dateStr = today.toISOString().split("T")[0];
+                        const count_per_file = Math.ceil(estimatedDataCount / process.env.COUNTCHUNK);
+
+                        const connections = await oracledb.getConnection(config);
+                        const estimateQuery = `
+                            UPDATE CMS_COST_TRANSIT_V2_LOG
+                            SET
+                                START_PROCESS = SYSDATE,
+                                DURATION   = :duration,
+                                DATACOUNT  = :datacount,
+                                TOTAL_FILE = :total_file
+                            WHERE ID_JOB_REDIS = :jobId and CATEGORY = 'DCO'
+                        `;
+                        const estimateValues = {
+                            duration: estimatedTimeMinutes, // Add the duration
+                            datacount: estimatedDataCount,        // Add the data count
+                            total_file: count_per_file, // Add the total file count
+                            jobId: job.id  // The job ID that we are processing
+                        };
+                        await connections.execute(estimateQuery, estimateValues);
+                        await connections.commit();
+                        console.log(`estimate data : ${estimatedDataCount}`);
+
+                        // Panggil fungsi fetchDataAndExportToExcel untuk menghasilkan laporan
+                        zipFileName = await fetchDataAndExportToExcelDCOV3({
                             origin,
                             destination,
                             froms,

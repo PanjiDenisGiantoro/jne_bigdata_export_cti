@@ -258,6 +258,166 @@ async function getReportDCO(req, res) {
     }
 }
 
+async function getReportDCIV3(req, res) {
+    try {
+        const { origin, destination, froms, thrus, service, user_id, branch_id, user_session } = req.query;
+        if (!origin || !destination || !froms || !thrus || !user_id || !service || !branch_id || !user_session) {
+            return res.status(400).json({ success: false, message: "Missing required parameters" });
+        }
+        const today = new Date();
+        const dateStr = today.toISOString().split("T")[0];
+        const queueToAdd = await getQueueToAddJob(branch_id);
+        const job = await queueToAdd.add({
+            type: 'dciv3',
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            service,
+            dateStr
+        }, {
+            jobId: await generateJobId()
+        });
+        const jsonData = { origin, destination, froms, thrus, user_id, service, dateStr, branch_id, user_session };
+        const clobJson = JSON.stringify(jsonData);
+        const connection = await oracledb.getConnection(config);
+        const insertProcedure = `BEGIN DBCTC_V2.P_INS_LOG_MONITORING_EXPORT(P_USER_LOGIN => :user_name, P_NAME_FILE => :name_file, P_DURATION => :duration, P_NAMA_MODUL => :category, P_TGL_SETTING => :periode, P_STATUS => :status, P_JOB_SERVER => :job_server, P_COUNT_DATA => :datacount, P_SETTING_PERPAGE => :count_per_file, P_TOTAL_FILE => :total_file, P_BRANCH => :branch, P_LOG_JSON => :log_json); END;`;
+        const insertValues = { user_name: user_id, name_file: "", duration: 0, category: "DCI", periode: `${froms} - ${thrus}`, status: "Process", job_server: job.id, datacount: 0, count_per_file: 1000000, total_file: 0, branch: branch_id, log_json: clobJson };
+        await connection.execute(insertProcedure, insertValues);
+        await connection.commit();
+        const logFilePath = path.join(__dirname, "../log/log_files", `JNE_REPORT_DCIV3_${job.id}.txt`);
+        if (!fs.existsSync(path.dirname(logFilePath))) fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+        const redirectUrl = `${process.env.DIRECTPOINT}/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        res.redirect(redirectUrl);
+    } catch (err) {
+        console.error("Error adding job to queue:", err);
+        res.status(500).send({ success: false, message: "An error occurred while adding the job." });
+    }
+}
+
+async function getReportDCOV3(req, res) {
+    try {
+        const {
+            origin,
+            destination,
+            froms,
+            thrus,
+            service,
+            user_id,
+            branch_id,
+            user_session,
+        } = req.query;
+
+        if (!origin || !destination || !froms || !thrus || !user_id || !service || !branch_id || !user_session) {
+            return res.status(400).json({ success: false, message: "Missing required parameters" });
+        }
+
+        const today = new Date();
+        const dateStr = today.toISOString().split("T")[0];
+
+        const queueToAdd = await getQueueToAddJob(branch_id);
+
+        // Menambahkan pekerjaan ke queue yang dipilih
+        const job = await queueToAdd.add({
+            type: 'dcov3',
+            origin,
+            destination,
+            froms,
+            thrus,
+            user_id,
+            service,
+            dateStr,
+        }, {
+            jobId: await generateJobId()
+        });
+
+        const jsonData = {
+            origin: origin,
+            destination: destination,
+            froms: froms,
+            thrus: thrus,
+            user_id: user_id,
+            service: service,
+            user_session: user_session,
+            dateStr: dateStr,
+            branch_id: branch_id,
+        };
+
+        const clobJson = JSON.stringify(jsonData);
+        const connection = await oracledb.getConnection(config);
+
+        const insertProcedure = `
+    BEGIN
+        DBCTC_V2.P_INS_LOG_MONITORING_EXPORT(
+            P_USER_LOGIN        => :user_name,
+            P_NAME_FILE         => :name_file,
+            P_DURATION          => :duration,
+            P_NAMA_MODUL        => :category,
+            P_TGL_SETTING       => :periode,
+            P_STATUS            => :status,
+            P_JOB_SERVER        => :job_server,
+            P_COUNT_DATA        => :datacount,
+            P_SETTING_PERPAGE   => :count_per_file,
+            P_TOTAL_FILE        => :total_file,
+            P_BRANCH            => :branch,
+            P_LOG_JSON         => :log_json
+        );
+    END;
+`;
+
+        const insertValues = {
+            user_name: user_id, // user_id sebagai USER_NAME
+            name_file: "", // Kosongkan terlebih dahulu, nanti akan diupdate setelah proses selesai
+            duration: 0, // Estimasi waktu
+            category: "DCO", // Kategori adalah TCO
+            periode: `${froms} - ${thrus}`, // Rentang periode
+            status: "Process", // Status awal adalah Pending
+            job_server: job.id, // ID job
+            datacount: 0,
+            count_per_file: 1000000,
+            total_file: 0,
+            branch: branch_id, // Ganti sesuai nama cabang yang sesuai
+            log_json: clobJson,
+        };
+
+        console.log("insert data dco :" + insertValues)
+
+        await connection.execute(insertProcedure, insertValues);
+        await connection.commit();
+
+        const logFilePath = path.join(
+            __dirname,
+            "../log/log_files",
+            `JNE_REPORT_DCOV3_${job.id}.txt`
+        );
+        const logMessage = `
+            Job ID: ${job.id}
+            Origin: ${origin}
+            Destination: ${destination}
+            From Date: ${froms}
+            To Date: ${thrus}
+            User ID: ${user_id}
+            Service: ${service}
+            Status: Pending
+            created_at: ${new Date()}
+        `;
+
+        if (!fs.existsSync(path.dirname(logFilePath))) {
+            fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+        }
+
+        const redirectUrl = `${process.env.DIRECTPOINT}/ords/f?p=101:55:${user_session}::NO::P78_USER:${user_id}`;
+        res.redirect(redirectUrl);
+    } catch (err) {
+        console.error("Error adding job to queue:", err);
+        res.status(500).send({
+            success: false,
+            message: "An error occurred while adding the job.",
+        });
+    }
+}
+
 async function getReportCA(req, res) {
     try {
         const {
@@ -1424,6 +1584,8 @@ module.exports = {
     getReportTCI,
     getReportDCI,
     getReportDCO,
+    getReportDCIV3,
+    getReportDCOV3,
     getReportCA,
     getReportRU,
     getReportDBO,

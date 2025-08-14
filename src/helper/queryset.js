@@ -21,14 +21,15 @@ const querysets = {
                 TRANSIT_MANIFEST_ROUTE,
                 SMU_NUMBER,
                 FLIGHT_NUMBER,
+                RUTE_FLIGHT,
                 BRANCH_TRANSPORTER,
                 '''' || BAG_NO AS BAG_NUMBER,
                 SERVICE_BAG,
                 MODA,
                 MODA_TYPE,
-                CNOTE_WEIGHT AS WEIGHT_CONNOTE,
-                ACT_WEIGHT AS WEIGHT_BAG,
-                Round(PRORATED_WEIGHT, 3) AS PRORATED_WEIGHT,
+                round(CNOTE_WEIGHT, 3) AS WEIGHT_CONNOTE,
+                round(ACT_WEIGHT, 3) AS WEIGHT_BAG,
+                round(PRORATED_WEIGHT, 3) AS PRORATED_WEIGHT,
                 SUM(TRANSIT_FEE) AS TRANSIT_FEE,
                 SUM(HANDLING_FEE) AS HANDLING_FEE,
                 SUM(OTHER_FEE) AS OTHER_FEE,
@@ -43,7 +44,7 @@ const querysets = {
                 SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
                 ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, 
                 TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE, SMU_NUMBER, 
-                FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
+                FLIGHT_NUMBER, RUTE_FLIGHT, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
             ORDER BY AWB_NO ASC
         `;
     },
@@ -70,6 +71,7 @@ const querysets = {
                     TRANSIT_MANIFEST_ROUTE,
                     SMU_NUMBER,
                     FLIGHT_NUMBER,
+                    RUTE_FLIGHT,
                     BRANCH_TRANSPORTER,
                     '''' || BAG_NO AS BAG_NUMBER,
                     SERVICE_BAG,
@@ -89,7 +91,7 @@ const querysets = {
                         OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
                         BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
                         ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
-                        SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
+                        SMU_NUMBER, FLIGHT_NUMBER, RUTE_FLIGHT, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
                 order by CONNOTE_NUMBER ASC`;
     },
     getDCIReportQuery(whereClause = '', additionalConditions = '') {
@@ -149,6 +151,64 @@ const querysets = {
                    FLAG_MULTI,
                    FLAG_CANCEL
             FROM CMS_COST_DELIVERY_V2 ${whereClause} ${additionalConditions}`;
+    },
+    getDCIV3ReportQuery(whereClause = '', additionalConditions = '') {
+        return `
+            SELECT '''' || CNOTE_NO                      AS CNOTE_NO,
+                   TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY')     AS CNOTE_DATE,
+                   TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM')    AS TIME_CNOTE_DATE,
+                   ORIGIN,
+                   DESTINATION,
+                   ZONA_DESTINATION,
+                   SERVICES_CODE,
+                   NVL(QTY, 0)                           AS QTY,
+                   CASE
+                       WHEN WEIGHT = 0 THEN 0
+                       WHEN WEIGHT < 1 THEN 1
+                       WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                       ELSE FLOOR(WEIGHT)
+                       END                                  WEIGHT,
+                   NVL(AMOUNT, 0)                        AS AMOUNT,
+                   MANIFEST_NO,
+                   TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY')  AS MANIFEST_DATE,
+                   TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE,
+                   NVL(DELIVERY, 0)                      AS DELIVERY,
+                   NVL(DELIVERY_SPS, 0)                  AS DELIVERY_SPS,
+                   NVL(TRANSIT, 0)                       AS BIAYA_TRANSIT,
+                   NVL(LINEHAUL_FIRST, 0)                AS LINEHAUL_FIRST,
+                   NVL(LINEHAUL_NEXT, 0)                 AS LINEHAUL_NEXT,
+                   FLAG_MULTI,
+                   FLAG_CANCEL
+            FROM CMS_COST_DELIVERY_V3 ${whereClause} ${additionalConditions}`;
+    },
+    getDCOV3ReportQuery(whereClause = '', additionalConditions = '') {
+        return `
+            SELECT '''' || CNOTE_NO                      AS CNOTE_NO,
+                   TO_CHAR(CNOTE_DATE, 'DD/MM/YYYY')     AS CNOTE_DATE,
+                   TO_CHAR(CNOTE_DATE, 'HH:MI:SS AM')    AS TIME_CNOTE_DATE,
+                   ORIGIN,
+                   DESTINATION,
+                   NVL(QTY, 0)                           AS QTY,
+                   ZONA_DESTINATION,
+                   SERVICES_CODE,
+                   CASE
+                       WHEN WEIGHT = 0 THEN 0
+                       WHEN WEIGHT < 1 THEN 1
+                       WHEN RPAD(REGEXP_SUBSTR(WEIGHT, '[[:digit:]]+$'), 3, 0) > 300 THEN CEIL(WEIGHT)
+                       ELSE FLOOR(WEIGHT)
+                       END                                  WEIGHT,
+                   NVL(AMOUNT, 0)                        AS AMOUNT,
+                   MANIFEST_NO,
+                   TO_CHAR(MANIFEST_DATE, 'DD/MM/YYYY')  AS MANIFEST_DATE,      -- Format tanggal
+                   TO_CHAR(MANIFEST_DATE, 'HH:MI:SS AM') AS TIME_MANIFEST_DATE, -- Format tanggal
+                   NVL(DELIVERY, 0)                      AS DELIVERY,
+                   NVL(DELIVERY_SPS, 0)                  AS DELIVERY_SPS,
+                   NVL(TRANSIT, 0)                       AS BIAYA_TRANSIT,
+                   NVL(LINEHAUL_FIRST, 0)                AS LINEHAUL_FIRST,
+                   NVL(LINEHAUL_NEXT, 0)                 AS LINEHAUL_NEXT,
+                   FLAG_MULTI,
+                   FLAG_CANCEL
+            FROM CMS_COST_DELIVERY_V3 ${whereClause} ${additionalConditions}`;
     },
     getRUReportQuery(whereClause = '', additionalConditions = '') {
         return `

@@ -88,6 +88,7 @@ async function fetchDataAndExportToExcel({origin, destination, froms, thrus, use
                     "TRANSIT MANIFEST ROUTE",
                     "SMU NUMBER",
                     "FLIGHT NUMBER",
+                    "RUTE FLIGHT",
                     "BRANCH TRANSPORTER",
                     "BAG NUMBER",
                     "SERVICE BAG",
@@ -240,6 +241,7 @@ async function fetchDataAndExportToExcelTCI({
                     "TRANSIT MANIFEST ROUTE",
                     "SMU NUMBER",
                     "FLIGHT NUMBER",
+                    "RUTE FLIGHT",
                     "BRANCH TRANSPORTER",
                     "BAG NUMBER",
                     "SERVICE BAG",
@@ -485,6 +487,267 @@ async function fetchDataAndExportToExcelDCO({origin, destination, froms, thrus, 
             const normOrigin = normalizeName(origin);
             const normDestination = normalizeName(destination);
             const baseFileNameDCO = `DCO Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
+            let no = 1;
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `${baseFileNameDCO} Part ${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DCO');
+
+                const headers = [
+                    "NO",
+                    "CONNOTE NO",
+                    "CONNOTE DATE ",
+                    "TIME CONNOTE DATE ",
+                    "ORIGIN",
+                    "DESTINATION",
+                    "COLLY",
+                    "ZONA",
+                    "SERVICES CODE",
+                    "WEIGHT",
+                    "AMOUNT",
+                    "MANIFEST NO",
+                    "MANIFEST DATE",
+                    "TIME MANIFEST DATE",
+                    "DELIVERY",
+                    "DELIVERY SPS",
+                    "BIAYA TRANSIT",
+                    "PENERUS",
+                    "BIAYA PENERUS NEXT KG",
+                    "FLAG_MULTI",
+                    "FLAG_CANCEL"
+                ];
+
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
+
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
+
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DCO'
+                });
+                await connection.commit();
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
+            }
+
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCO} ${jobId.substring(0, 5)}.zip`);
+            const output = fs.createWriteStream(zipFileName);
+            const archive = archiver('zip', { zlib: { level: 1 } });
+            archive.pipe(output);
+            archive.directory(folderPath, false);
+            await archive.finalize();
+
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
+
+            resolve({ zipFileName, dataCount: rows.length });
+        } catch (err) {
+            console.error('Terjadi kesalahan:', err);
+            reject(err);
+        } finally {
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
+        }
+    });
+}
+
+async function fetchDataAndExportToExcelDCIV3({ origin, destination, froms, thrus, service, user_id, dateStr, jobId }) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            console.log('Menghubungkan ke database...');
+            connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
+
+
+            // Build where clause using the helper
+            const { whereClause, bindParams } = await buildWhereClause(
+                { origin, destination, froms, thrus, service },
+                'DCI'  // Using DCI mapping for this function
+            );
+
+            // Add additional conditions specific to this query
+            const additionalConditions = `
+                        AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                        --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
+                        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
+                        AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                            'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                            'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                            'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                            'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                            'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                            'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
+                    `;
+
+
+            console.log('Menjalankan query data...');
+            const query = querysets.getDCIV3ReportQuery(whereClause, additionalConditions);
+            const result = await connection.execute(query, bindParams);
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+            const chunkSize = process.env.CHUNK_SIZE || 1000000;
+            const chunks = [];
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
+            }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
+
+            console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+
+            const baseFileNameDCI = `DCI V3 Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
+
+            let no = 1;
+            for (let i = 0; i < chunks.length; i++) {
+                console.log(`Membuat file Excel untuk chunk ${i + 1}...`);
+                const fileName = path.join(folderPath, `${baseFileNameDCI} Part ${i + 1}.xlsx`);
+                const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({ filename: fileName });
+                const worksheet = workbook.addWorksheet('Data Laporan DCI');
+
+                const headers = [
+                    "NO", "CNOTE NO", "CNOTE DATE", "TIME CNOTE DATE", "ORIGIN", "DESTINATION", "ZONA DESTINATION",
+                    "SERVICES CODE", "COLLY", "WEIGHT", "AMOUNT", "MANIFEST NO", "MANIFEST DATE", "TIME MANIFEST DATE",
+                    "DELIVERY", "DELIVERY SPS", "BIAYA TRANSIT", "BIAYA PENERUS", "BIAYA PENERUS NEXT KG",
+                    "FLAG MULTI", "FLAG CANCEL"
+                ];
+
+                worksheet.addRow(['Origin:', origin === '0' ? 'ALL' : origin]).commit();
+                worksheet.addRow(['Destination:', destination === '0' ? 'ALL' : destination]).commit();
+                worksheet.addRow(['Service Code:', service === '0' ? 'ALL' : service]).commit();
+                worksheet.addRow(['Period:', `${froms} s/d ${thrus}`]).commit();
+                worksheet.addRow(['Download Date:', new Date().toLocaleString()]).commit();
+                worksheet.addRow(['User Id:', user_id]).commit();
+                worksheet.addRow(['Jumlah Data:', chunks[i].length]).commit();
+                worksheet.addRow([]).commit();
+                worksheet.addRow(headers).commit();
+
+                for (const row of chunks[i]) {
+                    worksheet.addRow([no++, ...row]).commit();
+                }
+
+                await workbook.commit();
+                console.log(`File berhasil dibuat: ${fileName}`);
+
+                const updateQuery = `
+                    UPDATE CMS_COST_TRANSIT_V2_LOG
+                    SET SUMMARY_FILE = :summary_file
+                    WHERE ID_JOB_REDIS = :jobId AND CATEGORY = :category
+                `;
+                await connection.execute(updateQuery, {
+                    summary_file: i + 1,
+                    jobId: jobId,
+                    category: 'DCI'
+                });
+                await connection.commit();
+                console.log(`Database log diupdate untuk chunk ${i + 1}`);
+            }
+
+            console.log('Memulai proses zip file...');
+            const zipFileName = path.join(__dirname, '../../file_download', `${baseFileNameDCI} ${jobId.substring(0, 5)}.zip`);
+            const output = fs.createWriteStream(zipFileName);
+            const archive = archiver('zip', { zlib: { level: 1 } });
+            archive.pipe(output);
+            archive.directory(folderPath, false);
+            await archive.finalize();
+
+            fs.rmSync(folderPath, { recursive: true });
+            console.log(`Folder ${folderPath} telah dihapus setelah proses zip.`);
+            console.log(`File zip berhasil dibuat: ${zipFileName}`);
+
+            resolve({ zipFileName, dataCount: rows.length });
+        } catch (err) {
+            console.error('Terjadi kesalahan:', err);
+            reject(err);
+        } finally {
+            if (connection) await connection.close();
+            console.log('Koneksi database ditutup.');
+        }
+    });
+}
+
+async function fetchDataAndExportToExcelDCOV3({origin, destination, froms, thrus, service, user_id, dateStr,jobId}) {
+    return new Promise(async (resolve, reject) => {
+        let connection;
+        try {
+            console.log('Menghubungkan ke database...');
+            connection = await oracledb.getConnection(config);
+            console.log("Koneksi berhasil ke database");
+
+            const { whereClause, bindParams } = await buildWhereClause(
+                { origin, destination, froms, thrus, service }, 'DCO'
+            );
+            const additionalConditions = `
+                        AND SUBSTR(ORIGIN,1,3) <> SUBSTR(DESTINATION,1,3)
+                        --AND SERVICE_CODE NOT IN ('TRC11','TRC13')  -- remark by ibnu 18 sep 2024 req team ctc 
+                        AND SERVICES_CODE NOT IN ('CML','CTC_CML','P2P')
+                        AND CNOTE_NO NOT LIKE 'RT%' --10 OCT 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND CNOTE_NO NOT LIKE 'FW%' --22 NOV 2022 REQ RT TIDAK MASUK REQUEST BY RICKI, BA : YOGA 
+                        AND SERVICES_CODE NOT IN  ('@BOX3KG','@BOX5KG','CCINTL','CCINTL2','CML_CTC','CTC','CTC-YES','CTC05','CTC08','CTC11',
+                            'CTC12','CTC13','CTC15','CTC19','CTC23','CTCOKE','CTCOKE08','CTCOKE11','CTCOKE12',
+                            'CTCOKE13','CTCOKE15','CTCREG','CTCREG08','CTCREG11','CTCREG13','CTCREG15','CTCSPS08',
+                            'CTCSPS1','CTCSPS11','CTCSPS12','CTCSPS13','CTCSPS15','CTCSPS19','CTCSPS2','CTCSPS23',
+                            'CTCTRC08','CTCTRC11','CTCVIP','CTCVVIP','CTCYES','CTCYES08','CTCYES11','CTCYES12',
+                            'CTCYES13','CTCYES15','CTCYES19','CTCYES23','INT','INTL','INTL10','INTL15',
+                            'INTL16','INTL19','INTL20','JKT','JKTSS','JKTYES')
+                    `;
+
+
+            console.log('Menjalankan query data...');
+            const query = querysets.getDCOV3ReportQuery(whereClause, additionalConditions);
+            const result = await connection.execute(query, bindParams);
+            console.log('Query selesai, memproses data...');
+            const rows = result.rows;
+                        const chunkSize = process.env.CHUNK_SIZE || 1000000;
+            const chunks = [];
+            for (let i = 0; i < rows.length; i += chunkSize) {
+                chunks.push(rows.slice(i, i + chunkSize));
+            }
+            console.log(`Data dibagi menjadi ${chunks.length} chunk.`);
+
+            const dateNow = new Date();
+            const dateString = dateNow.toISOString().split('T')[0];
+            const timeString = dateNow.toISOString().split('T')[1].split('.')[0].replace(/:/g, '');
+            const folderPath = path.join(__dirname, uuidv4());
+            if (!fs.existsSync(folderPath)) fs.mkdirSync(folderPath);
+
+            console.log('Memulai proses ekspor Excel...');
+            // Normalisasi origin dan destination untuk penamaan file
+            const normOrigin = normalizeName(origin);
+            const normDestination = normalizeName(destination);
+            const baseFileNameDCO = `DCO V3 Report - ${user_id} [${normOrigin} to ${normDestination}] [${froms} - ${thrus}]`;
 
             let no = 1;
             for (let i = 0; i < chunks.length; i++) {
@@ -1991,6 +2254,8 @@ module.exports = {
     fetchDataAndExportToExcelTCI,
     fetchDataAndExportToExcelDCI,
     fetchDataAndExportToExcelDCO,
+    fetchDataAndExportToExcelDCIV3,
+    fetchDataAndExportToExcelDCOV3,
     fetchDataAndExportToExcelCA,
     fetchDataAndExportToExcelCABTM,
     fetchDataAndExportToExcelRU,
