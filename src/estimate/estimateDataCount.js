@@ -2,6 +2,7 @@ const oracledb = require('oracledb');
 const { config, config_jnebill } = require('../config/dbConfig');
 const { buildWhereClause } = require('../helper/whereClause');
 
+// OPTIMIZED: Removed unnecessary GROUP BY and subquery
 async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -23,23 +24,12 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
                         AND CNOTE_WEIGHT > 0
                     `;
 
-                    // Query untuk estimasi jumlah data
+                    // OPTIMIZED Query: Direct COUNT without unnecessary subquery and GROUP BY
                     connection.execute(`
-                        SELECT COUNT(*) as DATA_COUNT FROM (
-                            SELECT
-                                ROWNUM, CUST_ID, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
-                                BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
-                                ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
-                                SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
-                            FROM CMS_COST_TRANSIT_V2
-                                    ${whereClause}
-                                    ${additionalConditions}
-                            GROUP BY
-                                ROWNUM, CUST_ID, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
-                                BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
-                                ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
-                                SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
-                            )
+                        SELECT COUNT(*) as DATA_COUNT 
+                        FROM CMS_COST_TRANSIT_V2
+                        ${whereClause}
+                        ${additionalConditions}
                     `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
@@ -55,6 +45,7 @@ async function estimateDataCount({origin, destination, froms, thrus, user_id}) {
     });
 }
 
+// OPTIMIZED: Removed unnecessary GROUP BY and subquery
 async function estimateDataCountTCI({origin, destination, froms, thrus, user_id, TM, session}) {
     return new Promise(async (resolve, reject) => {
         let connection;
@@ -77,23 +68,13 @@ async function estimateDataCountTCI({origin, destination, froms, thrus, user_id,
                         AND CNOTE_WEIGHT > 0
                     `;
 
-                    // Query untuk estimasi jumlah data
+                    // OPTIMIZED Query: Direct COUNT without unnecessary subquery and GROUP BY
                     connection.execute(`
-                        SELECT COUNT(*) as DATA_COUNT FROM (
-                            SELECT
-                                ROWNUM, CUST_ID, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
-                                BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
-                                ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
-                                SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
-                            FROM CMS_COST_TRANSIT_V2
-                            ${whereClause}
-                            ${additionalConditions}
-                            GROUP BY
-                                ROWNUM, CUST_ID, OUTBOND_MANIFEST_ROUTE, OUTBOND_MANIFEST_NO, TRANSIT_MANIFEST_ROUTE, MODA, MODA_TYPE,
-                                BAG_NO, AWB_NO, SERVICES_CODE, OUTBOND_MANIFEST_DATE, ACT_WEIGHT, CNOTE_WEIGHT,
-                                ORIGIN, DESTINATION, PRORATED_WEIGHT, AWB_DATE, TRANSIT_MANIFEST_NO, TRANSIT_MANIFEST_DATE,
-                                SMU_NUMBER, FLIGHT_NUMBER, BRANCH_TRANSPORTER, SERVICE_BAG, ZONA_DESTINATION
-                            )`, bindParams, (err, result) => {
+                        SELECT COUNT(*) as DATA_COUNT 
+                        FROM CMS_COST_TRANSIT_V2
+                        ${whereClause}
+                        ${additionalConditions}
+                    `, bindParams, (err, result) => {
                         if (err) {
                             reject('Error executing query: ' + err.message);
                         } else {
